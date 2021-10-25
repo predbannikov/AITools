@@ -13,5 +13,9 @@ UCLASS()
 class AITOOLS_API AAIToolsGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere)
+	AActor* actor_test;
 	
 };
