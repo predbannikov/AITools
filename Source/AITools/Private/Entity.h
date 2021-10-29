@@ -8,6 +8,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/ArrowComponent.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Entity.generated.h"
 
 UCLASS()
@@ -22,6 +23,7 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void BeginDestroy() override;;
 
 public:	
 	// Called every frame
@@ -45,5 +47,11 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	USceneComponent* pointB = nullptr;
+
+	UFUNCTION(BlueprintCallable)
+	void upMember();
+
+	UFUNCTION(BlueprintCallable)
+	FVector getForceVector();
 
 };
