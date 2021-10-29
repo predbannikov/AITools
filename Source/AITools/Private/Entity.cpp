@@ -9,23 +9,25 @@ AEntity::AEntity()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	physicsConstraint = CreateDefaultSubobject<UPhysicsConstraintComponent>(FName("Physics Component"));
+	physicsConstraint->SetupAttachment(RootComponent);
+
 	arrow = CreateDefaultSubobject<UArrowComponent>(FName("Arrow"));
-	//arrow->AttachToComponent(RootComponent);
-	arrow->SetupAttachment(RootComponent);
-	//SetRootComponent(arrow);
-	//AttachToComponent(arrow, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true));
+	arrow->AttachToComponent(physicsConstraint, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 
 	partA = CreateDefaultSubobject<UStaticMeshComponent>(FName("Part A"));
+	partA->AttachToComponent(physicsConstraint, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 
 
 	partB = CreateDefaultSubobject<UStaticMeshComponent>(FName("Part B"));
+	partB->AttachToComponent(physicsConstraint, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 
-	physicsConstraint = CreateDefaultSubobject<UPhysicsConstraintComponent>(FName("Physics Component"));
+
 	pointA = CreateDefaultSubobject<USceneComponent>(FName("Point A"));
+	pointA->AttachToComponent(physicsConstraint, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 	pointB = CreateDefaultSubobject<USceneComponent>(FName("Point B"));
-	partB->SetSimulatePhysics(true);
+	pointB->AttachToComponent(physicsConstraint, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 
-	physicsConstraint->SetConstrainedComponents(partA, "Member A", partB, "Member B");
 	
 }
 
@@ -33,6 +35,8 @@ AEntity::AEntity()
 void AEntity::BeginPlay()
 {
 	Super::BeginPlay();
+	physicsConstraint->SetConstrainedComponents(partA, "Member A", partB, "Member B");
+	partB->SetSimulatePhysics(true);
 	
 }
 
