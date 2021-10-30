@@ -14,64 +14,69 @@ AEntity::AEntity()
 		return;
 	}
 
-	USceneComponent *sc = CreateDefaultSubobject<USceneComponent>(FName("Root component"));
-	SetRootComponent(sc);					// ≈сли не назначить, будет предупреждение о назначении на усмотрение редактора
-	sc->AttachToComponent(RootComponent, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-	sc->SetupAttachment(RootComponent);
+	root = CreateDefaultSubobject<USceneComponent>(FName("Root component"));
+	SetRootComponent(root);					// ≈сли не назначить, будет предупреждение о назначении на усмотрение редактора
+	//sc->AttachToComponent(RootComponent, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
+	//sc->SetupAttachment(RootComponent);		// —амому себе не надо назначать
 
-	physicsConstraint = CreateDefaultSubobject<UPhysicsConstraintComponent>(FName("Physics Component"));
-	physicsConstraint->AttachToComponent(sc, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-	physicsConstraint->SetupAttachment(sc);
 
 	arrow = CreateDefaultSubobject<UArrowComponent>(FName("Arrow"));
-	arrow->AttachToComponent(sc, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-	arrow->SetupAttachment(sc);		// прикрепл€ет как поддерево
+	//arrow->AttachToComponent(sc, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
+	arrow->SetupAttachment(root);		// прикрепл€ет как поддерево
 	arrow->SetHiddenInGame(false);
 	arrow->SetRelativeScale3D(FVector(0.5, 0.5, 0.5));
 
 	partA = CreateDefaultSubobject<UStaticMeshComponent>(FName("Part A"));
-	partA->SetupAttachment(sc);
-	partA->AttachToComponent(sc, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
+	partA->SetupAttachment(root);
+	//partA->AttachToComponent(sc, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 	partA->SetStaticMesh(ConstructorHelpers::FObjectFinder<UStaticMesh>(TEXT("StaticMesh'/Game/SM/SM_Member'")).Object);
 	partA->SetRelativeLocation(partA->GetRelativeLocation() + FVector(0, 0, 17.0));
 	partA->SetMobility(EComponentMobility::Movable);
 
 	partB = CreateDefaultSubobject<UStaticMeshComponent>(FName("Part B"));
-	partB->SetupAttachment(sc);
-	partB->AttachToComponent(sc, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
+	partB->SetupAttachment(root);
+	//partB->AttachToComponent(sc, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 	partB->SetStaticMesh(ConstructorHelpers::FObjectFinder<UStaticMesh>(TEXT("StaticMesh'/Game/SM/SM_Member'")).Object);
 	partB->SetRelativeLocation(partB->GetRelativeLocation() - FVector(0, 0, 17.0 ));
 	partB->SetMobility(EComponentMobility::Movable);
 
 	pointA = CreateDefaultSubobject<USceneComponent>(FName("Point A"));
-	pointA->AttachToComponent(sc, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
+	//pointA->AttachToComponent(partA, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 	pointA->SetupAttachment(partA);
 	pointA->SetRelativeLocation(pointA->GetRelativeLocation() + FVector(-5, 0, 5));
-	pointA->SetMobility(EComponentMobility::Movable);
+	//pointA->SetMobility(EComponentMobility::Movable);
 
 	pointB = CreateDefaultSubobject<USceneComponent>(FName("Point B"));
-	pointB->AttachToComponent(sc, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
+	//pointB->AttachToComponent(partB, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 	pointB->SetupAttachment(partB);
 	pointB->SetRelativeLocation(pointB->GetRelativeLocation() + FVector(-5, 0, 5));
 	pointB->SetMobility(EComponentMobility::Movable);
 
+	physicsConstraint = CreateDefaultSubobject<UPhysicsConstraintComponent>(FName("Physics Component"));
+	//physicsConstraint->AttachToComponent(sc, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
+	physicsConstraint->SetupAttachment(root);
 
 	//physicsConstraint->SetConstrainedComponents(partA, "Member A", partB, "Member B");
 
-	 
+	physicsConstraint->SetDisableCollision(true);
+	physicsConstraint->SetAngularSwing1Limit(EAngularConstraintMotion::ACM_Locked, 45.0);
+	physicsConstraint->SetAngularSwing2Limit(EAngularConstraintMotion::ACM_Limited, 75.0);
+	physicsConstraint->SetAngularTwistLimit(EAngularConstraintMotion::ACM_Locked, 45.0);
+	// ѕриминени€ AngularRotationOffset лучше выполн€ть в паре SetRelativeRotation, так отображение красной плоскости (рабочего хода) становитс€ корректным
+	physicsConstraint->ConstraintInstance.AngularRotationOffset = FRotator(-85, 0, 0);				
+	physicsConstraint->SetRelativeRotation(physicsConstraint->GetRelativeRotation() + FRotator(-85, 0, 0));
+
 }
 
 // Called when the game starts or when spawned
 void AEntity::BeginPlay()
 {
-	//UE_LOG(LogTemp, Warning, TEXT("%s "), *pointA->GetRelativeLocation().ToString());
-	physicsConstraint->SetConstrainedComponents(partA, "Member A", partB, "Member B");
-	physicsConstraint->SetDisableCollision(true);
-	physicsConstraint->SetAngularSwing1Limit(EAngularConstraintMotion::ACM_Locked, 45.0);
-	physicsConstraint->SetAngularSwing2Limit(EAngularConstraintMotion::ACM_Limited, 75.0);
-	physicsConstraint->SetAngularTwistLimit(EAngularConstraintMotion::ACM_Locked, 45.0);
+	physicsConstraint->SetConstrainedComponents(partB, "Member B", partA, "Member A");
+//UE_LOG(LogTemp, Warning, TEXT("%s "), *pointA->GetRelativeLocation().ToString());
 	
-	//physicsConstraint->SetRelativeRotation(physicsConstraint->GetRelativeRotation() + FRotator(0, 85.0, 0));
+	//physicsConstraint->AttachToComponent(root, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
+
+//physicsConstraint->SetRelativeRotation(physicsConstraint->GetRelativeRotation() + FRotator(0, 85.0, 0));
 
 	Super::BeginPlay();
 	partB->SetSimulatePhysics(true);

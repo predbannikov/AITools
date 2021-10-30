@@ -8,6 +8,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/ArrowComponent.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
+//#include "PhysicsEngine/ConstraintInstance.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Entity.generated.h"
 
@@ -29,6 +30,7 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	USceneComponent *root = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UArrowComponent* arrow = nullptr;
@@ -41,6 +43,8 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UPhysicsConstraintComponent* physicsConstraint = nullptr;
+
+	//FConstraintInstance constraintInstance;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	USceneComponent* pointA = nullptr;
