@@ -46,10 +46,10 @@ public:
 
 	//FConstraintInstance constraintInstance;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
 	USceneComponent* pointA = nullptr;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
 	USceneComponent* pointB = nullptr;
 
 	UFUNCTION(BlueprintCallable)
@@ -58,8 +58,27 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FVector getForceVector();
 
+	/** called when something enters the sphere component */
+	UFUNCTION()
+	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	/** called when something leaves the sphere component */
+	UFUNCTION()
+	void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	bool entry = false;
+	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
+	float force = 5000.0f;
+
+	FRotator old_position;
+	FRotator position_cube;
+	float step = 10.0;
+	float diff_direct = 0;
+	float old_direct = 0;
 private:
 	void initPhysicsConstraints();
 	void startPhysicsConstraints();
+
+	void applyForce(float coefficient);
 
 };
