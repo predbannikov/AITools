@@ -58,4 +58,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FVector getForceVector();
 
+private:
+	void initPhysicsConstraints();
+	void startPhysicsConstraints();
+
 };

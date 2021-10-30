@@ -44,7 +44,7 @@ AEntity::AEntity()
 	//pointA->AttachToComponent(partA, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 	pointA->SetupAttachment(partA);
 	pointA->SetRelativeLocation(pointA->GetRelativeLocation() + FVector(-5, 0, 5));
-	//pointA->SetMobility(EComponentMobility::Movable);
+	pointA->SetMobility(EComponentMobility::Movable);
 
 	pointB = CreateDefaultSubobject<USceneComponent>(FName("Point B"));
 	//pointB->AttachToComponent(partB, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
@@ -52,35 +52,18 @@ AEntity::AEntity()
 	pointB->SetRelativeLocation(pointB->GetRelativeLocation() + FVector(-5, 0, 5));
 	pointB->SetMobility(EComponentMobility::Movable);
 
-	physicsConstraint = CreateDefaultSubobject<UPhysicsConstraintComponent>(FName("Physics Component"));
-	//physicsConstraint->AttachToComponent(sc, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-	physicsConstraint->SetupAttachment(root);
 
-	//physicsConstraint->SetConstrainedComponents(partA, "Member A", partB, "Member B");
-
-	physicsConstraint->SetDisableCollision(true);
-	physicsConstraint->SetAngularSwing1Limit(EAngularConstraintMotion::ACM_Locked, 45.0);
-	physicsConstraint->SetAngularSwing2Limit(EAngularConstraintMotion::ACM_Limited, 75.0);
-	physicsConstraint->SetAngularTwistLimit(EAngularConstraintMotion::ACM_Locked, 45.0);
-	// Приминения AngularRotationOffset лучше выполнять в паре SetRelativeRotation, так отображение красной плоскости (рабочего хода) становится корректным
-	physicsConstraint->ConstraintInstance.AngularRotationOffset = FRotator(-85, 0, 0);				
-	physicsConstraint->SetRelativeRotation(physicsConstraint->GetRelativeRotation() + FRotator(-85, 0, 0));
-
+	initPhysicsConstraints();
 }
 
 // Called when the game starts or when spawned
 void AEntity::BeginPlay()
 {
-	physicsConstraint->SetConstrainedComponents(partB, "Member B", partA, "Member A");
-//UE_LOG(LogTemp, Warning, TEXT("%s "), *pointA->GetRelativeLocation().ToString());
-	
-	//physicsConstraint->AttachToComponent(root, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-
-//physicsConstraint->SetRelativeRotation(physicsConstraint->GetRelativeRotation() + FRotator(0, 85.0, 0));
+	startPhysicsConstraints();
 
 	Super::BeginPlay();
-	partB->SetSimulatePhysics(true);
-	
+
+	//UE_LOG(LogTemp, Warning, TEXT("%s "), *pointA->GetRelativeLocation().ToString());
 }
 
 inline void AEntity::BeginDestroy() 
@@ -112,5 +95,30 @@ FVector AEntity::getForceVector()
 	FVector forwardVector = UKismetMathLibrary::GetForwardVector(lookAtRotation);
 
 	return forwardVector;
+}
+
+void AEntity::initPhysicsConstraints()
+{
+	physicsConstraint = CreateDefaultSubobject<UPhysicsConstraintComponent>(FName("Physics Component"));
+	physicsConstraint->SetupAttachment(root);
+
+
+	physicsConstraint->SetDisableCollision(true);
+
+	physicsConstraint->SetAngularSwing1Limit(EAngularConstraintMotion::ACM_Locked, 45.0);
+	physicsConstraint->SetAngularSwing2Limit(EAngularConstraintMotion::ACM_Limited, 75.0);
+	physicsConstraint->SetAngularTwistLimit(EAngularConstraintMotion::ACM_Locked, 45.0);
+
+	// Приминения AngularRotationOffset лучше выполнять в паре SetRelativeRotation, так отображение красной плоскости в редакторе(рабочего хода) становится корректным
+	physicsConstraint->ConstraintInstance.AngularRotationOffset = FRotator(-85, 0, 0);
+	physicsConstraint->SetRelativeRotation(physicsConstraint->GetRelativeRotation() + FRotator(-85, 0, 0));
+}
+
+void AEntity::startPhysicsConstraints()
+{
+	// Часть B (слева) - подвижна
+	// Часть A (справа) - на неё крепится PhysicsConstraint
+	physicsConstraint->SetConstrainedComponents(partB, "Member B", partA, "Member A");
+	partB->SetSimulatePhysics(true);
 }
 
