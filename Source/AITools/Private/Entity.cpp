@@ -19,7 +19,6 @@ AEntity::AEntity()
 	//sc->AttachToComponent(RootComponent, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 	//sc->SetupAttachment(RootComponent);		// —амому себе не надо назначать
 
-
 	arrow = CreateDefaultSubobject<UArrowComponent>(FName("Arrow"));
 	//arrow->AttachToComponent(sc, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 	arrow->SetupAttachment(root);		// прикрепл€ет как поддерево
@@ -38,6 +37,7 @@ AEntity::AEntity()
 	//partB->AttachToComponent(sc, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 	partB->SetStaticMesh(ConstructorHelpers::FObjectFinder<UStaticMesh>(TEXT("StaticMesh'/Game/SM/SM_Member'")).Object);
 	partB->SetRelativeLocation(partB->GetRelativeLocation() - FVector(0, 0, 17.0 ));
+	//partB->SetRelativeRotation(partB->GetRelativeRotation() - FRotator(15, 0, 0));
 	partB->SetMobility(EComponentMobility::Movable);
 
 	pointA = CreateDefaultSubobject<USceneComponent>(FName("Point A"));
@@ -55,19 +55,99 @@ AEntity::AEntity()
 	partB->OnComponentBeginOverlap.AddDynamic(this, &AEntity::OnOverlapBegin);        // set up a notification for when this component overlaps something
 	partB->OnComponentEndOverlap.AddDynamic(this, &AEntity::OnOverlapEnd);      // set up a notification for when this component overlaps something
 
-	old_position = partB->GetComponentRotation();
-	
+
 	initPhysicsConstraints();
+
+
+	old_position = partB->GetComponentRotation();
+
+	root->GetOwner()->SetActorRelativeRotation(FRotator(-50, 0, 0));
+	root->GetOwner()->SetActorRelativeLocation(FVector(0, 0, 50));
+	//testMatrix();
+
 }
 
 // Called when the game starts or when spawned
 void AEntity::BeginPlay()
 {
+	default_rot = partB->GetComponentRotation();
+	UE_LOG(LogTemp, Warning, TEXT("default_rot = %s"), *default_rot.ToString());
+
 	startPhysicsConstraints();
 
 	Super::BeginPlay();
+	float mass = partB->GetMass();
+	UE_LOG(LogTemp, Warning, TEXT("mass = %f"), mass);
+	FVector velosity = partB->GetComponentVelocity();
+	UE_LOG(LogTemp, Warning, TEXT("velosity = %s"), *velosity.ToString());
 
+
+
+	//printMatrix(w);
+	//UE_LOG(LogTemp, Warning, TEXT("mat=%f"), m(0,1));
+	//Eigen::MatrixXd m = Eigen::MatrixXd::Random(3, 3);
 	//UE_LOG(LogTemp, Warning, TEXT("%s "), *pointA->GetRelativeLocation().ToString());
+}
+
+void AEntity::testMatrix()
+{
+	auto sigmoid = [](const float z) -> float { return 1.0 / (1.0 + exp(-z)); }; 
+	Eigen::MatrixXf w(3, 3);	// = Eigen::MatrixXf(3, 3);
+	w(0, 0) = 0.9;
+	w(1, 0) = 0.3;
+	w(2, 0) = 0.4;
+	w(0, 1) = 0.2;
+	w(1, 1) = 0.8;
+	w(2, 1) = 0.2;
+	w(0, 2) = 0.1;
+	w(1, 2) = 0.5;
+	w(2, 2) = 0.6;
+	printMatrix(w, "w");
+	Eigen::MatrixXf i(3, 1);	// = Eigen::MatrixXf(3, 1) ;
+	i << 0.9 , 0.1 , 0.8;
+	printMatrix(i, "i");
+	Eigen::MatrixXf o = w.transpose() * i;
+	printMatrix(o, "o");
+	Eigen::MatrixXf out(3, 1);
+	out = o.unaryExpr(sigmoid);
+	printMatrix(out, "out");
+
+}
+
+void AEntity::printMatrix(Mat mat, FString name)
+{
+	int row = mat.rows();
+	int col = mat.cols();
+	FString str;
+	UE_LOG(LogTemp, Warning, TEXT("PRINT %s"), *name);
+	for (size_t i = 0; i < row; i++) {
+		for (size_t j = 0; j < col; j++) {
+			str.Append(FString::Printf(TEXT("%f\t"), (mat(i, j))));
+		}
+		UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
+		str.Reset();
+	}
+}
+
+void AEntity::printMatrix3(Eigen::Matrix3f mat, FString name)
+{
+	FString str;
+	UE_LOG(LogTemp, Warning, TEXT("PRINT %s"), *name);
+	for (size_t i = 0; i < 3; i++) {
+		for (size_t j = 0; j < 3; j++) {
+			str.Append(FString::Printf(TEXT("%f\t"), (mat(i, j))));
+		}
+		UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
+		str.Reset();
+	}
+}
+
+inline float AEntity::Sigmoid(const float z) {
+	return 1.0 / (1.0 + exp(-z));
+}
+
+inline float AEntity::SigmoidDerivative(const float z) {
+	return z * (1.0 - z);
 }
 
 inline void AEntity::BeginDestroy() 
@@ -81,7 +161,17 @@ inline void AEntity::BeginDestroy()
 void AEntity::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	FRotator rot = partB->GetComponentRotation();
+	printTransform();
+	return ;	// !!!!!!!!!!!!!!!!!!!!
+
+
+	FRotator rot = partB->GetComponentRotation() - default_rot;
+
+
+	UE_LOG(LogTemp, Warning, TEXT("rot = %s direct=%f sign=%f"), *rot.ToString());
+
+	return;		// #!!!!!!!!!!!!!!!!!!!!
+
 
 	float direct = rot.Pitch - old_position.Pitch;
 	float signUp = 1;
@@ -123,39 +213,45 @@ FVector AEntity::getForceVector()
 	//UE_LOG(LogTemp, Warning, TEXT("%s   %s"), *pointA->GetRelativeLocation().ToString() , *pointB->GetComponentLocation().ToString());
 	FRotator lookAtRotation = UKismetMathLibrary::FindLookAtRotation(pointB->GetComponentLocation(), pointA->GetComponentLocation());
 	FVector forwardVector = UKismetMathLibrary::GetForwardVector(lookAtRotation);
-	if(partB->GetComponentRotation().Pitch > -30)
-		forwardVector *= -1;
+	//if(partB->GetComponentRotation().Pitch > -30)
+	//	forwardVector *= -1;
 	return forwardVector;
 }
 
 void AEntity::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	force -= 100;
-	entry = true;
-	position_cube = partB->GetRelativeRotation();
-	UE_LOG(LogTemp, Warning, TEXT("Begin overlap rot%s"), *position_cube.ToString());
+	//force -= 100;
+	//entry = true;
+	//position_cube = partB->GetRelativeRotation();
+	UE_LOG(LogTemp, Warning, TEXT("Begin overlap %s"), *GetName());
 }
 
 void AEntity::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	UE_LOG(LogTemp, Warning, TEXT("End overlap"));
-	entry = false;
+	//entry = false;
 }
 
+
+#define MAX_ANGLE_HINGE			160
+#define ANGLE_ONESIDE_OFFSET	10
 void AEntity::initPhysicsConstraints()
 {
 	physicsConstraint = CreateDefaultSubobject<UPhysicsConstraintComponent>(FName("Physics Component"));
 	physicsConstraint->SetupAttachment(root);
 
 	physicsConstraint->SetDisableCollision(true);
+	//physicsConstraint->ConstraintInstance.SetAngularSwing1Limit()
 
 	physicsConstraint->SetAngularSwing1Limit(EAngularConstraintMotion::ACM_Locked, 45.0);
-	physicsConstraint->SetAngularSwing2Limit(EAngularConstraintMotion::ACM_Limited, 75.0);
+	physicsConstraint->SetAngularSwing2Limit(EAngularConstraintMotion::ACM_Limited, MAX_ANGLE_HINGE / 2.);		// ¬ыставл€ем максимальный ход в каждую сторону
 	physicsConstraint->SetAngularTwistLimit(EAngularConstraintMotion::ACM_Locked, 45.0);
 
+	// —двигаем AngularRotationOffset от начальной позиции
 	// ѕриминени€ AngularRotationOffset лучше выполн€ть в паре SetRelativeRotation, так отображение красной плоскости в редакторе(рабочего хода шарнира) становитс€ корректным
-	physicsConstraint->ConstraintInstance.AngularRotationOffset = FRotator(-85, 0, 0);
-	physicsConstraint->SetRelativeRotation(physicsConstraint->GetRelativeRotation() + FRotator(-85, 0, 0));
+	physicsConstraint->ConstraintInstance.AngularRotationOffset = FRotator(-(MAX_ANGLE_HINGE / 2. + ANGLE_ONESIDE_OFFSET), 0, 0);
+	physicsConstraint->AddRelativeRotation(FRotator(-(MAX_ANGLE_HINGE / 2. + ANGLE_ONESIDE_OFFSET), 0, 0));
+	//physicsConstraint->SetRelativeRotation(physicsConstraint->GetRelativeRotation() + FRotator(-85, 0, 0));
 }
 
 void AEntity::startPhysicsConstraints()
@@ -171,6 +267,22 @@ void AEntity::applyForce(float coefficient)
 	FVector force_forward = getForceVector();
 }
 
+float AEntity::getAngle()
+{
+	float axesCentr = 90.0f;
+	FRotator rot = partB->GetRelativeRotation();
+	if(rot.Yaw > 0)
+		axesCentr *= -1.0;
+	return axesCentr - (rot - default_rot).Pitch;
+}
+
+void AEntity::printTransform()
+{
+	//UE_LOG(LogTemp, Warning, TEXT("Transform: %s"), *partB->GetRelativeTransform().ToString());
+	UE_LOG(LogTemp, Warning, TEXT("Roll: %s"), *partB->GetRelativeRotation().ToString());
+	UE_LOG(LogTemp, Warning, TEXT("Angle: %f"), getAngle());
+	
+}
 
 /*
 			Example 1: on component end overlap c++

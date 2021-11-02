@@ -9,8 +9,13 @@
 #include "Components/ArrowComponent.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 //#include "PhysicsEngine/ConstraintInstance.h"
+#include "Eigen/Dense"
+
 #include "Kismet/KismetMathLibrary.h"
 #include "Entity.generated.h"
+
+using Mat = Eigen::MatrixXf;
+
 
 UCLASS()
 class AEntity : public AActor
@@ -32,19 +37,17 @@ public:
 
 	USceneComponent *root = nullptr;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
 	UArrowComponent* arrow = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
 	UStaticMeshComponent* partA = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
 	UStaticMeshComponent* partB = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UPhysicsConstraintComponent* physicsConstraint = nullptr;
-
-	//FConstraintInstance constraintInstance;
 
 	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
 	USceneComponent* pointA = nullptr;
@@ -80,5 +83,18 @@ private:
 	void startPhysicsConstraints();
 
 	void applyForce(float coefficient);
+	float getAngle();
+	void printTransform();
+	void printMatrix(Mat mat, FString name = "");
+	void printMatrix3(Eigen::Matrix3f mat, FString name = "");
 
+	Mat w1;
+
+	void testMatrix();
+
+	float Sigmoid(const float z);
+
+	float SigmoidDerivative(const float z);
+
+	FRotator default_rot;
 };
