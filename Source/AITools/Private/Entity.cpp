@@ -271,6 +271,8 @@ float AEntity::getAngle()
 {
 	float axesCentr = 90.0f;
 	FRotator rot = partB->GetRelativeRotation();
+	partB->GetWorldT
+
 	if(rot.Yaw > 0)
 		axesCentr *= -1.0;
 	return axesCentr - (rot - default_rot).Pitch;
