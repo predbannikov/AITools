@@ -305,3 +305,117 @@ UFUNCTION()
 void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 */
+<<<<<<< Updated upstream
+=======
+
+
+
+void AEntity::testMatrix()
+{
+	NeuralNetwork n(4, 4, 4);
+	
+	return ;
+	auto sigmoid = [](const float z) -> float { return 1.0 / (1.0 + exp(-z)); };
+	Eigen::MatrixXf w(3, 3);	// = Eigen::MatrixXf(3, 3);
+	w(0, 0) = 0.9;
+	w(1, 0) = 0.3;
+	w(2, 0) = 0.4;
+	w(0, 1) = 0.2;
+	w(1, 1) = 0.8;
+	w(2, 1) = 0.2;
+	w(0, 2) = 0.1;
+	w(1, 2) = 0.5;
+	w(2, 2) = 0.6;
+	printMatrix(w, "w");
+	Eigen::MatrixXf i(3, 1);	// = Eigen::MatrixXf(3, 1) ;
+	i << 0.9, 0.1, 0.8;
+	printMatrix(i, "i");
+	Eigen::MatrixXf o = w.transpose() * i;
+	printMatrix(o, "o");
+	Eigen::MatrixXf out(3, 1);
+	out = o.unaryExpr(sigmoid);
+	printMatrix(out, "out");
+
+}
+
+void AEntity::printMatrix(Mat mat, FString name)
+{
+	int row = mat.rows();
+	int col = mat.cols();
+	FString str;
+	UE_LOG(LogTemp, Warning, TEXT("PRINT %s"), *name);
+	for (size_t i = 0; i < row; i++) {
+		for (size_t j = 0; j < col; j++) {
+			str.Append(FString::Printf(TEXT("%f\t"), (mat(i, j))));
+		}
+		UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
+		str.Reset();
+	}
+}
+
+void AEntity::printMatrix3(Eigen::Matrix3f mat, FString name)
+{
+	FString str;
+	UE_LOG(LogTemp, Warning, TEXT("PRINT %s"), *name);
+	for (size_t i = 0; i < 3; i++) {
+		for (size_t j = 0; j < 3; j++) {
+			str.Append(FString::Printf(TEXT("%f\t"), (mat(i, j))));
+		}
+		UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
+		str.Reset();
+	}
+}
+
+inline float AEntity::Sigmoid(const float z) {
+	return 1.0 / (1.0 + exp(-z));
+}
+
+inline float AEntity::SigmoidDerivative(const float z) {
+	return z * (1.0 - z);
+}
+
+// Входные параметры
+// partB->GetComponentVelocity().X
+// partB->GetComponentVelocity().Z
+// Текущий угол
+// Угол целевой
+// 
+inline NeuralNetwork::NeuralNetwork(int input_nodes, int output_nodes, int hiden_nodes, float learning_rate) {
+	input = Mat(input_nodes, 1);
+	out = Mat(output_nodes, 1);
+	wh = Mat::Random(output_nodes, input_nodes) * 0.5;
+	wo = Mat::Random(output_nodes, input_nodes) * 0.5;
+	hidden = Mat(hiden_nodes);
+	rate = learning_rate;
+	printMatrix(wh, "w");
+	printMatrix(wo, "w");
+}
+
+inline void NeuralNetwork::train(Mat &input_nodes) {
+	auto sigmoid = [](const float z) -> float { return 1.0 / (1.0 + exp(-z)); };
+	hidden = wh.transpose() * input_nodes;
+	hidden = hidden.unaryExpr(sigmoid);
+	out = wo.transpose() * hidden;
+	out = out.unaryExpr(sigmoid);
+
+}
+
+inline void NeuralNetwork::query() {
+
+}
+
+void NeuralNetwork::printMatrix(Mat mat, FString name)
+{
+	int row = mat.rows();
+	int col = mat.cols();
+	FString str;
+	UE_LOG(LogTemp, Warning, TEXT("PRINT %s"), *name);
+	for (size_t i = 0; i < row; i++) {
+		for (size_t j = 0; j < col; j++) {
+			str.Append(FString::Printf(TEXT("%f\t"), (mat(i, j))));
+		}
+		UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
+		str.Reset();
+	}
+}
+>>>>>>> Stashed changes

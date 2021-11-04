@@ -17,6 +17,22 @@
 using Mat = Eigen::MatrixXf;
 
 
+<<<<<<< Updated upstream
+=======
+struct NeuralNetwork {
+	Mat input;
+	Mat wh;
+	Mat hidden;
+	Mat wo;
+	Mat out;
+	float rate;
+	NeuralNetwork(int input_nodes, int output_nodes, int hiden_nodes, float learning_rate = 0.3);
+	void train(Mat &input_nodes);
+	void query();
+	void printMatrix(Mat mat, FString name = "");
+};
+
+>>>>>>> Stashed changes
 UCLASS()
 class AEntity : public AActor
 {
