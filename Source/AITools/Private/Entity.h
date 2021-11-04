@@ -12,10 +12,25 @@
 #include "Eigen/Dense"
 
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
+
 #include "Entity.generated.h"
 
 using Mat = Eigen::MatrixXf;
 
+
+struct NeuralNetwork {
+	Mat input;
+	Mat wh;
+	Mat hiden;
+	Mat wo;
+	Mat out;
+	float rate;
+	NeuralNetwork(int input_nodes, int output_nodes, int hiden_nodes, float learning_rate = 0.3);
+	void train(Mat &input_nodes);
+	void query();
+	void printMatrix(Mat mat, FString name = "");
+};
 
 UCLASS()
 class AEntity : public AActor
@@ -56,9 +71,6 @@ public:
 	USceneComponent* pointB = nullptr;
 
 	UFUNCTION(BlueprintCallable)
-	void upMember();
-
-	UFUNCTION(BlueprintCallable)
 	FVector getForceVector();
 
 	/** called when something enters the sphere component */
@@ -72,6 +84,7 @@ public:
 	bool entry = false;
 	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
 	float force = 5000.0f;
+	const float max_force = 7000.0f;
 
 	FRotator old_position;
 	FRotator position_cube;
