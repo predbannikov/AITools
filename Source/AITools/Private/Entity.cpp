@@ -33,14 +33,16 @@ AEntity::AEntity()
 	partA->SetStaticMesh(ConstructorHelpers::FObjectFinder<UStaticMesh>(TEXT("StaticMesh'/Game/SM/SM_Member'")).Object);
 	partA->SetRelativeLocation(partA->GetRelativeLocation() + FVector(0, 0, 17.0));
 	partA->SetMobility(EComponentMobility::Movable);
+	UE_LOG(LogTemp, Warning, TEXT("partA loc %s"), *partA->GetRelativeLocation().ToString());
+
 
 	partB = CreateDefaultSubobject<UStaticMeshComponent>(FName("Part B"));
 	partB->SetupAttachment(root);
-	//partB->AttachToComponent(sc, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
+	//partB->AttachToComponent(root, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 	partB->SetStaticMesh(ConstructorHelpers::FObjectFinder<UStaticMesh>(TEXT("StaticMesh'/Game/SM/SM_Member'")).Object);
 	partB->SetRelativeLocation(partB->GetRelativeLocation() - FVector(0, 0, 17.0 ));
-	//partB->SetRelativeRotation(partB->GetRelativeRotation() - FRotator(15, 0, 0));
 	partB->SetMobility(EComponentMobility::Movable);
+	UE_LOG(LogTemp, Warning, TEXT("partB loc %s"), *partB->GetRelativeLocation().ToString());
 
 	pointA = CreateDefaultSubobject<USceneComponent>(FName("Point A"));
 	//pointA->AttachToComponent(partA, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
@@ -269,28 +271,21 @@ void AEntity::applyForce(float coefficient)
 	FVector force_forward = getForceVector();
 }
 
-FRotator AEntity::getAngle()
+float AEntity::getAngle()
 {
-	float axesCentr = 90.0f;
-	//FRotator rot = partB->GetUpVector().Rotation();
-	//partB->GetRelativeLocation().GetSafeNormal();
-
-	//if(rot.Yaw > 0)
-	//	axesCentr *= -1.0;
-	FRotator rot(90, 0, 0);
-	rot -= partB->GetUpVector().Rotation();
-	return rot - default_rot;
-	//return axesCentr - (rot - default_rot).Pitch;
+	FQuat bet = FQuat::FindBetweenNormals(partA->GetUpVector(), partB->GetUpVector());
+	FVector nAxis;
+	float angle = 0.0f;
+	bet.ToAxisAndAngle(nAxis, angle);
+	return FMath::RadiansToDegrees(angle) - ANGLE_ONESIDE_OFFSET;
 }
 
 void AEntity::printTransform()
 {
-	//UE_LOG(LogTemp, Warning, TEXT("Transform: %s"), *partB->GetRelativeTransform().ToString());
-	//UE_LOG(LogTemp, Warning, TEXT("Roll: %s"), *partB->GetRelativeRotation().ToString());
-	//UE_LOG(LogTemp, Warning, TEXT("Rotation: %s"), *partB->GetForwardVector().Rotation().ToString());
-	UE_LOG(LogTemp, Warning, TEXT("Angle: %s"), *getAngle().ToString());
-	DrawDebugLine(GetWorld(), partB->GetRelativeLocation(), partB->GetRelativeLocation() + (partB->GetUpVector() * 30), FColor::Green, false, -1.0, 0, 2);
-	
+	DrawDebugLine(GetWorld(), partA->GetComponentLocation(), partA->GetComponentLocation() + (partA->GetUpVector() * 30), FColor::Green, false, -1.0, 0, 2);
+	DrawDebugLine(GetWorld(), partB->GetComponentLocation(), partB->GetComponentLocation() + (partB->GetUpVector() * 30), FColor::Green, false, -1.0, 0, 2);
+	DrawDebugLine(GetWorld(), partB->GetComponentLocation(), partB->GetComponentLocation() + (partB->GetComponentVelocity() * 30), FColor::Blue, false, -1.0, 0, 2);
+	UE_LOG(LogTemp, Warning, TEXT("Angle: %f"), getAngle());
 }
 
 /*
