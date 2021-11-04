@@ -12,13 +12,12 @@
 #include "Eigen/Dense"
 
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Entity.generated.h"
 
 using Mat = Eigen::MatrixXf;
 
 
-<<<<<<< Updated upstream
-=======
 struct NeuralNetwork {
 	Mat input;
 	Mat wh;
@@ -32,7 +31,7 @@ struct NeuralNetwork {
 	void printMatrix(Mat mat, FString name = "");
 };
 
->>>>>>> Stashed changes
+
 UCLASS()
 class AEntity : public AActor
 {
@@ -72,9 +71,6 @@ public:
 	USceneComponent* pointB = nullptr;
 
 	UFUNCTION(BlueprintCallable)
-	void upMember();
-
-	UFUNCTION(BlueprintCallable)
 	FVector getForceVector();
 
 	/** called when something enters the sphere component */
@@ -85,32 +81,24 @@ public:
 	UFUNCTION()
 	void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	bool entry = false;
 	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
 	float force = 5000.0f;
 
 	FRotator old_position;
 	FRotator position_cube;
-	float step = 10.0;
-	float diff_direct = 0;
-	float old_direct = 0;
 private:
 	void initPhysicsConstraints();
 	void startPhysicsConstraints();
 
-	void applyForce(float coefficient);
 	float getAngle();
 	void printTransform();
 	void printMatrix(Mat mat, FString name = "");
 	void printMatrix3(Eigen::Matrix3f mat, FString name = "");
 
-	Mat w1;
 
 	void testMatrix();
 
 	float Sigmoid(const float z);
 
 	float SigmoidDerivative(const float z);
-
-	FRotator default_rot;
 };
