@@ -83,7 +83,7 @@ private:
 	void startPhysicsConstraints();
 
 	void applyForce(float coefficient);
-	float getAngle();
+	FRotator getAngle();
 	void printTransform();
 	void printMatrix(Mat mat, FString name = "");
 	void printMatrix3(Eigen::Matrix3f mat, FString name = "");

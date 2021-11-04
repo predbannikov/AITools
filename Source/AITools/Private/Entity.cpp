@@ -2,6 +2,8 @@
 
 
 #include "Entity.h"
+#include "DrawDebugHelpers.h"
+
 
 // Sets default values
 AEntity::AEntity()
@@ -70,7 +72,7 @@ AEntity::AEntity()
 // Called when the game starts or when spawned
 void AEntity::BeginPlay()
 {
-	default_rot = partB->GetComponentRotation();
+	default_rot = FRotator(90, 0, 0) - partB->GetUpVector().Rotation();
 	UE_LOG(LogTemp, Warning, TEXT("default_rot = %s"), *default_rot.ToString());
 
 	startPhysicsConstraints();
@@ -267,22 +269,27 @@ void AEntity::applyForce(float coefficient)
 	FVector force_forward = getForceVector();
 }
 
-float AEntity::getAngle()
+FRotator AEntity::getAngle()
 {
 	float axesCentr = 90.0f;
-	FRotator rot = partB->GetRelativeRotation();
-	partB->GetWorldT
+	//FRotator rot = partB->GetUpVector().Rotation();
+	//partB->GetRelativeLocation().GetSafeNormal();
 
-	if(rot.Yaw > 0)
-		axesCentr *= -1.0;
-	return axesCentr - (rot - default_rot).Pitch;
+	//if(rot.Yaw > 0)
+	//	axesCentr *= -1.0;
+	FRotator rot(90, 0, 0);
+	rot -= partB->GetUpVector().Rotation();
+	return rot - default_rot;
+	//return axesCentr - (rot - default_rot).Pitch;
 }
 
 void AEntity::printTransform()
 {
 	//UE_LOG(LogTemp, Warning, TEXT("Transform: %s"), *partB->GetRelativeTransform().ToString());
-	UE_LOG(LogTemp, Warning, TEXT("Roll: %s"), *partB->GetRelativeRotation().ToString());
-	UE_LOG(LogTemp, Warning, TEXT("Angle: %f"), getAngle());
+	//UE_LOG(LogTemp, Warning, TEXT("Roll: %s"), *partB->GetRelativeRotation().ToString());
+	//UE_LOG(LogTemp, Warning, TEXT("Rotation: %s"), *partB->GetForwardVector().Rotation().ToString());
+	UE_LOG(LogTemp, Warning, TEXT("Angle: %s"), *getAngle().ToString());
+	DrawDebugLine(GetWorld(), partB->GetRelativeLocation(), partB->GetRelativeLocation() + (partB->GetUpVector() * 30), FColor::Green, false, -1.0, 0, 2);
 	
 }
 
