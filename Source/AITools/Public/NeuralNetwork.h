@@ -9,6 +9,9 @@
 #include "HingePair.h"
 #include "NeuralNetwork.generated.h"
 
+#define ONE_SIDE_HINGE		15
+
+
 using Mat = Eigen::MatrixXf;
 
 UCLASS()
@@ -24,7 +27,7 @@ public:
 	Mat hidden;
 	Mat wo;
 	Mat out;
-	void forward(Mat& input);
+	void forward();
 	void backward(Mat& output);
 	void printWeight(int num = 0, int _row = 1, int _col = 1);
 	Mat getOutput();
@@ -32,19 +35,21 @@ public:
 	//void train(const std::vector<std::pair<int, std::vector<float>*> >& vec_input);
 	//void query(const std::vector<std::pair<int, std::vector<float>*> >& vec_input_query);
 	void printMatrix(Mat mat, FString name = "", int _row = -1, int _col = -1);
+	int test = 0;
 private:
 	int input_nodes;
 	int output_nodes;
 	int hidden_nodes;
 	float learning_rate;
 
-	AHingePair *hinges[100];
+	AHingePair *hinges[ONE_SIDE_HINGE * ONE_SIDE_HINGE];
 	enum STATE { STATE_FORWARD, STATE_BACKWARD } state = STATE_FORWARD;
 	int counter_tests = 0;
 	int counter_right_tests = 0;
 	float delta_time = 0;
 
 	APlayerController* controller = nullptr;
+	int counter_frames = 0;
 
 protected:
 	// Called when the game starts or when spawned

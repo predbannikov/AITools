@@ -9,6 +9,7 @@
 #define HIDDEN_NODES	5
 #define LEARNING_RATE	0.3
 
+
 // ¬ходные параметры
 // partB->GetComponentVelocity().X
 // partB->GetComponentVelocity().Z
@@ -31,12 +32,11 @@ void ANeuralNetwork::BeginPlay()
 {
 	controller = GetWorld()->GetFirstPlayerController();
 
-	for (int i = 0, x = 0; i < 10; i++, x += 75) {
-		for (int j = 0, y = 0; j < 10; j++, y += 75) {
-			int idx = i * 10 + j;
+	for (int i = 0, x = 0; i < ONE_SIDE_HINGE; i++, x += 75) {
+		for (int j = 0, y = 0; j < ONE_SIDE_HINGE; j++, y += 75) {
+			int idx = i * ONE_SIDE_HINGE + j;
 			hinges[idx] = GetWorld()->SpawnActor<AHingePair>(FVector(x, y, 100), FRotator(150, 0, 0));
 			hinges[idx]->setIndex(idx);
-
 		}
 	}
 	input = Mat(input_nodes, 1);
@@ -50,16 +50,25 @@ void ANeuralNetwork::BeginPlay()
 void ANeuralNetwork::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	Mat target_output(1, 1);
-	Mat cur_input;
-	float target_response;
+	counter_frames++;
+	//UE_LOG(LogTemp, Warning, TEXT("%s %d"), *GetName(), test);
+	//test++;
+	//return;
 
 	if (controller->IsInputKeyDown(EKeys::R)) {
 		counter_tests = 0;
 		counter_right_tests = 0;
 		UE_LOG(LogTemp, Warning, TEXT("RESET COUNTERS:"));
 	}
+
+	Mat target_output(1, 1);
+	Mat cur_input;
+	float angle;
+	float koeff;
+	float anlgeTo;
+	float target_response;
+	float x, z;
+	FVector velocity;
 
 	switch (state)
 	{
@@ -68,28 +77,57 @@ void ANeuralNetwork::Tick(float DeltaTime)
 		state = STATE_BACKWARD;
 		break;
 	case STATE_BACKWARD:
+		if (hinges[0]->getCounterFrames() != counter_frames) {
+			UE_LOG(LogTemp, Warning, TEXT("ERROR Sinhronization state"));
+			return;
+		}
+
 		for (int i = 0; i < 100; i++) {
-			if (hinges[i]->getState() != state) {
-				UE_LOG(LogTemp, Warning, TEXT("ERROR Sinhronization state"));
-				return;
-			}
 			counter_tests++;
-			hinges[i]->getResult(target_response, cur_input);
-			printMatrix(cur_input, "INPUT");
-			target_output(0, 0) = target_response;
-			forward(cur_input);
+			//velocity = hinges[i]->getVelocityPartB();
+			//angle = hinges[i]->getAngle();
+			//koeff = hinges[i]->getKoeff();
+			//anlgeTo = hinges[i]->getNeedAngle();
+			hinges[i]->getParameters(angle, anlgeTo, velocity, koeff, target_response);
+
+			if (FMath::IsNearlyZero(velocity.X))
+				x = 1 / MAX_VELOCITY;
+			else
+				x = velocity.X / MAX_VELOCITY;
+			if (FMath::IsNearlyZero(velocity.Z))
+				z = 1 / MAX_VELOCITY;
+			else
+				z = velocity.Z / MAX_VELOCITY;
+
+			if (angle > MAX_ANGLE_HINGE)
+				angle = 0.999;
+			else if (angle < 0)
+				angle = 0.001;
+			else
+				angle /= MAX_ANGLE_HINGE;
+
+
+			
+			input = Mat(5, 1);
+			input << x, z, angle, anlgeTo / MAX_ANGLE_HINGE, koeff;
+			//printMatrix(input, "INPUT");
+			forward();
+
+
 			if ((out(0, 0) > 0.5 && target_response > 0.5) || (out(0,0) < 0.5 && target_response < 0.5)) {
 				counter_right_tests++;
 			}
+
+			target_output(0, 0) = target_response;
 			backward(target_output);
 
 		}
-		if(counter_tests == 2000 * 100)
-			UKismetSystemLibrary::QuitGame(GetWorld(), controller, EQuitPreference::Quit, true);
+		//if(counter_tests == 200 * 100)
+		//	UKismetSystemLibrary::QuitGame(GetWorld(), controller, EQuitPreference::Quit, true);
 		delta_time += DeltaTime;
 		if (delta_time > 0.3) {
+			printMatrix(out, "OUT");
 			UE_LOG(LogTemp, Warning, TEXT("MIDDLE VALUE RESULT %f of %d tests"), (float)counter_right_tests / (float)counter_tests, counter_tests);
-			//printMatrix(out, "OUT");
 
 			delta_time = 0;
 		}
@@ -100,9 +138,9 @@ void ANeuralNetwork::Tick(float DeltaTime)
 	}
 }
 
-inline void ANeuralNetwork::forward(Mat& _input) {
+inline void ANeuralNetwork::forward() {
 	auto sigmoid = [](const float z) -> float { return 1.0 / (1.0 + exp(-z)); };
-	input = _input;
+	//input = _input;
 	hidden = wh * input;
 	hidden = hidden.unaryExpr(sigmoid);
 	out = wo * hidden;

@@ -4,9 +4,6 @@
 #include "HingePair.h"
 #include "DrawDebugHelpers.h"
 
-#define MAX_ANGLE_HINGE			160.		// Когда шарнир развёрнут на максимум
-#define ANGLE_ONESIDE_OFFSET	10.
-#define MAX_VELOCITY			10000.
 
 
 // Sets default values
@@ -74,7 +71,6 @@ void AHingePair::BeginPlay()
 {
 	startPhysicsConstraints();
 	Super::BeginPlay();
-
 	//float mass = partB->GetMass();
 	//UE_LOG(LogTemp, Warning, TEXT("mass = %f"), mass);
 }
@@ -90,51 +86,38 @@ inline void AHingePair::BeginDestroy()
 void AHingePair::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	counter_frames++;
 	//printTransform();
+	//UE_LOG(LogTemp, Warning, TEXT("%s %d"), *GetName(), test);
+	//test++;
 	//return ;
 
-	//UE_LOG(LogTemp, Warning, TEXT("%s"), *GetName());
 
+	//velocity = partB->GetComponentVelocity();
 
-	FVector velocity = partB->GetComponentVelocity();
-	//UE_LOG(LogTemp, Warning, TEXT("velocity = %s"), *velocity.ToString());
-
-	float k, force = 1500;
-	float x, z;
+	float force = 1500;
 	float angle = 0;
-
-	FVector force_vector = getForceVector();
+	float random_angle = 0;
+	FVector force_vector = getVForceDecrease();
 	switch (state)
 	{
 	case STATE_FORWARD:
-		if (FMath::IsNearlyZero(velocity.X))
-			x = 1 / MAX_VELOCITY;
-		else
-			x = velocity.X / MAX_VELOCITY;
-		if (FMath::IsNearlyZero(velocity.Z))
-			z = 1 / MAX_VELOCITY;
-		else
-			z = velocity.Z / MAX_VELOCITY;
+		complate = false;
+
 		angle = getAngle();
+		random_angle = FMath::FRandRange(10.0, 50.0);
 		if (angle + 50.0 < MAX_ANGLE_HINGE)
-			save_need_angle = 50.0;
+			save_need_angle = random_angle;
 		else {
-			save_need_angle = -50.0;
+			save_need_angle = -random_angle;
 			force_vector *= -1.0;
 		}
 		last_angle = angle;
-		if (angle > MAX_ANGLE_HINGE) 
-			angle = 0.999;
-		else if(angle < 0) 
-			angle = 0.001;
-		else
-			angle /= MAX_ANGLE_HINGE;
+
 		
 
-		k = FMath::FRandRange(-1, 1) * 0.9999;
-		input = Mat(5, 1);
-		input << x, z, angle, save_need_angle / MAX_ANGLE_HINGE, k;
-		force *= k;
+		koeff = FMath::FRandRange(-1, 1) * 0.9999;
+		force *= koeff;
 		force_vector *= force;
 		partB->AddForce(force_vector);
 
@@ -147,6 +130,7 @@ void AHingePair::Tick(float DeltaTime)
 		else 
 			target_response = 0.001;
 		state = STATE_FORWARD;
+		complate = true;
 		break;
 	default:
 		break;
@@ -154,11 +138,29 @@ void AHingePair::Tick(float DeltaTime)
 
 }
 
-FVector AHingePair::getForceVector()
+void AHingePair::getParameters(float& cur_angle, float& need_angle, FVector& _velocity, float &_koef, float &_target_response)
+{
+	cur_angle = getAngle();
+	need_angle = save_need_angle;
+	_velocity = partB->GetComponentVelocity();
+	_koef = koeff;
+	_target_response = target_response;
+}
+
+
+FVector AHingePair::getVForceDecrease()
 {
 	FRotator lookAtRotation = UKismetMathLibrary::FindLookAtRotation(pointB->GetComponentLocation(), pointA->GetComponentLocation());
 	FVector forwardVector = UKismetMathLibrary::GetForwardVector(lookAtRotation);
-	UKismetSystemLibrary::DrawDebugArrow(GetWorld(), pointB->GetComponentLocation(), pointA->GetComponentLocation(), 2, FLinearColor::Blue, 0, 1);
+	//UKismetSystemLibrary::DrawDebugArrow(GetWorld(), pointB->GetComponentLocation(), pointA->GetComponentLocation(), 2, FLinearColor::Blue, 0, 1);
+	return forwardVector;
+}
+
+FVector AHingePair::getVForceIncrease()
+{
+	FRotator lookAtRotation = UKismetMathLibrary::FindLookAtRotation(pointA->GetComponentLocation(), pointB->GetComponentLocation());
+	FVector forwardVector = UKismetMathLibrary::GetForwardVector(lookAtRotation);
+	//UKismetSystemLibrary::DrawDebugArrow(GetWorld(), pointB->GetComponentLocation(), pointA->GetComponentLocation(), 2, FLinearColor::Blue, 0, 1);
 	return forwardVector;
 }
 
@@ -196,10 +198,15 @@ void AHingePair::startPhysicsConstraints()
 	partB->SetSimulatePhysics(true);
 }
 
-void AHingePair::getResult(float& target, Mat& mat)
+//void AHingePair::getResult(float& target, Mat& mat)
+//{
+//	target = target_response;
+//	mat = input;
+//}
+
+float AHingePair::getTargetResponse()
 {
-	target = target_response;
-	mat = input;
+	return target_response;
 }
 
 float AHingePair::getAngle()
@@ -235,6 +242,36 @@ int AHingePair::getState()
 void AHingePair::setIndex(int idx)
 {
 	index = idx;
+}
+
+int AHingePair::getMaxVelocity()
+{
+	return MAX_VELOCITY;
+}
+
+int AHingePair::getMaxHingeAngle()
+{
+	return MAX_ANGLE_HINGE;
+}
+
+FVector AHingePair::getVelocityPartB()
+{
+	return velocity;
+}
+
+float AHingePair::getKoeff()
+{
+	return koeff;
+}
+
+float AHingePair::getNeedAngle()
+{
+	return save_need_angle;
+}
+
+int AHingePair::getCounterFrames()
+{
+	return counter_frames;
 }
 
 /*
