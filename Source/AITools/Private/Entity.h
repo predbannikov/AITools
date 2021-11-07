@@ -19,16 +19,24 @@ using Mat = Eigen::MatrixXf;
 
 
 struct NeuralNetwork {
+	NeuralNetwork(int _input_nodes = 5, int _hidden_nodes = 2, int _output_nodes = 2, float _learning_rate = 0.3);
 	Mat input;
 	Mat wh;
 	Mat hidden;
 	Mat wo;
 	Mat out;
-	float rate;
-	NeuralNetwork(int input_nodes, int output_nodes, int hiden_nodes, float learning_rate = 0.3);
-	void train(Mat &input_nodes);
-	void query();
-	void printMatrix(Mat mat, FString name = "");
+	void forward(Mat& input);
+	void backward(Mat& output);
+	void printWeight(int num = 0, int _row = 1, int _col = 1);
+	Mat getOutput();
+	//void train(const std::vector<std::pair<int, std::vector<float>*> >& vec_input);
+	//void query(const std::vector<std::pair<int, std::vector<float>*> >& vec_input_query);
+	static void printMatrix(Mat mat, FString name = "", int _row = -1, int _col = -1);
+private:
+	int input_nodes;
+	int output_nodes;
+	int hidden_nodes;
+	float learning_rate;
 };
 
 
@@ -36,8 +44,18 @@ UCLASS()
 class AEntity : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
+		enum STATE { STATE_FORWARD, STATE_BACKWARD } state = STATE_FORWARD;
+	float last_angle = 0;
+	float save_need_angle = 0;
+	int counter_tests = 0;
+	int counter_right_tests = 0;
+	float delta_time = 0;
+	float force_usually = 1500.0f;
+
+	FRotator position_cube;
+	NeuralNetwork n;
+
+public:
 	// Sets default values for this actor's properties
 	AEntity();
 
@@ -46,46 +64,44 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void BeginDestroy() override;;
 
-public:	
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	USceneComponent *root = nullptr;
+	USceneComponent* root = nullptr;
+	APlayerController* controller = nullptr;
+	class UInputComponent* InputComponent;
 
 	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
-	UArrowComponent* arrow = nullptr;
+		UArrowComponent* arrow = nullptr;
 
 	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
-	UStaticMeshComponent* partA = nullptr;
+		UStaticMeshComponent* partA = nullptr;
 
 	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
-	UStaticMeshComponent* partB = nullptr;
+		UStaticMeshComponent* partB = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	UPhysicsConstraintComponent* physicsConstraint = nullptr;
+		UPhysicsConstraintComponent* physicsConstraint = nullptr;
 
 	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
-	USceneComponent* pointA = nullptr;
+		USceneComponent* pointA = nullptr;
 
 	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
-	USceneComponent* pointB = nullptr;
+		USceneComponent* pointB = nullptr;
 
 	UFUNCTION(BlueprintCallable)
-	FVector getForceVector();
+		FVector getForceVector();
 
 	/** called when something enters the sphere component */
 	UFUNCTION()
-	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+		void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	/** called when something leaves the sphere component */
 	UFUNCTION()
-	void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+		void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	UPROPERTY(VisibleAnyWhere, BlueprintReadOnly)
-	float force = 5000.0f;
 
-	FRotator old_position;
-	FRotator position_cube;
 private:
 	void initPhysicsConstraints();
 	void startPhysicsConstraints();
