@@ -89,10 +89,12 @@ private:
 	float koeff = -1;
 	FVector velocity;
 	FVector groundForce;
+	float last_delta_turn = MAX_ANGLE_HINGE;
 	float save_need_angle = 0;
 	float last_angle = -100.0f;
 	float target_response;
 	int test = 0;
+	float last_force;
 	int counter_frames = 0;
 
 

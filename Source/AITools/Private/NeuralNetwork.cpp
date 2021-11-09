@@ -28,7 +28,7 @@ ANeuralNetwork::ANeuralNetwork()
 
 void ANeuralNetwork::BeginPlay()
 {
-	file.open("U:\\projects\\testingAITools\\AITools\\Saved\\file_training.csv", std::ios::out | std::ios::trunc | std::ios::ate);
+/*	file.open("U:\\projects\\testingAITools\\AITools\\Saved\\file_training.csv", std::ios::out | std::ios::trunc | std::ios::ate);
 	if (!file.is_open()) {
 		UE_LOG(LogTemp, Warning, TEXT("File not opening"));
 	}
@@ -67,6 +67,7 @@ void ANeuralNetwork::BeginPlay()
 	out = Mat(output_nodes, 1);
 	wh = Mat::Random(hidden_nodes, input_nodes) * 0.5;
 	wo = Mat::Random(output_nodes, hidden_nodes) * 0.5;
+	*/
 	Super::BeginPlay();
 }
 
@@ -173,7 +174,7 @@ void ANeuralNetwork::Tick(float DeltaTime)
 				line_to_write += ",";
 				line_to_write += std::to_string(koeff);
 				line_to_write += "\n";
-				file << line_to_write;
+				//file << line_to_write;
 				line_to_write.clear();
 				//UE_LOG(LogTemp, Warning, TEXT("MIDDLE VALUE RESULT %f of %d tests"), (float)counter_right_tests / (float)counter_tests, counter_tests);
 				drebezg = 0;
@@ -268,7 +269,7 @@ inline float ANeuralNetwork::Sigmoid(const float z) {
 
 inline void ANeuralNetwork::BeginDestroy()
 {
-	file.close();
+	//file.close();
 	//delete file;
 	Super::BeginDestroy();
 	//UE_LOG(LogTemp, Warning, TEXT("after destroy"));

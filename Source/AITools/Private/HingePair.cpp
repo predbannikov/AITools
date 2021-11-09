@@ -80,6 +80,9 @@ inline void AHingePair::BeginDestroy()
 	//UE_LOG(LogTemp, Warning, TEXT("befor destroy"));
 	Super::BeginDestroy();
 	//UE_LOG(LogTemp, Warning, TEXT("after destroy"));
+	last_force = 4000.0;
+	last_angle = getAngle();
+
 }
 
 // Called every frame
@@ -96,14 +99,27 @@ void AHingePair::Tick(float DeltaTime)
 	//velocity = partB->GetComponentVelocity();
 
 	//AddActorLocalRotation(FRotator(0, FMath::FRandRange(0, 5.0), 0));
-	if(FMath::IsNearlyEqual(last_angle, (float)-100.0))
-		return;
+	float const ANGLE_TO_BE_TURN = 100.0;
+
 	float angle = getAngle();
-	last_angle = angle;
-	if (FMath::IsNearlyEqual(angle, (float)100.0, (float)0.1)) 
+	if (FMath::IsNearlyEqual(angle, (float)ANGLE_TO_BE_TURN, (float)0.1))
 		return;
 
-	
+	float was_need_angle_turn = ANGLE_TO_BE_TURN - last_angle;
+	float new_need_angle_turn = ANGLE_TO_BE_TURN - angle;
+	float delta_turn = was_need_angle_turn - new_need_angle_turn;
+
+	float ration_turn = delta_turn / last_delta_turn;
+
+	last_force *= ration_turn;
+	FVector force_vector = getVForceDecrease();
+	force_vector *= last_force;
+	partB->AddForce(force_vector);
+	UE_LOG(LogTemp, Warning, TEXT("%f, %f"), last_force, ration_turn);
+
+
+	last_delta_turn = new_need_angle_turn;
+	last_angle = angle;
 	/*
 	
 	counter_frames++;

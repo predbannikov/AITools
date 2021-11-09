@@ -61,7 +61,7 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	std::fstream file;
+	//std::fstream file;
 	int drebezg = 0;
 	bool launch = false;
 	int count_samples = 0;
