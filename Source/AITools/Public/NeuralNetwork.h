@@ -7,9 +7,11 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Eigen/Dense"
 #include "HingePair.h"
+#include "fstream"
 #include "NeuralNetwork.generated.h"
 
-#define ONE_SIDE_HINGE		15
+
+#define ONE_SIDE_HINGES		23
 
 
 using Mat = Eigen::MatrixXf;
@@ -42,7 +44,7 @@ private:
 	int hidden_nodes;
 	float learning_rate;
 
-	AHingePair *hinges[ONE_SIDE_HINGE * ONE_SIDE_HINGE];
+	AHingePair *hinges[ONE_SIDE_HINGES * ONE_SIDE_HINGES];
 	enum STATE { STATE_FORWARD, STATE_BACKWARD } state = STATE_FORWARD;
 	int counter_tests = 0;
 	int counter_right_tests = 0;
@@ -54,9 +56,16 @@ private:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void BeginDestroy() override;
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+	std::fstream file;
+	int drebezg = 0;
+	bool launch = false;
+	int count_samples = 0;
+	//std::fstream *file = nullptr;
+
 
 };

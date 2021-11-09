@@ -4,9 +4,9 @@
 #include "NeuralNetwork.h"
 
 
-#define INPUT_NODES		5
+#define INPUT_NODES		8
+#define HIDDEN_NODES	12
 #define OUTPUT_NODES	1
-#define HIDDEN_NODES	5
 #define LEARNING_RATE	0.3
 
 
@@ -21,24 +21,47 @@ ANeuralNetwork::ANeuralNetwork()
 	PrimaryActorTick.bCanEverTick = true;
 
 	input_nodes = INPUT_NODES;
-	output_nodes = OUTPUT_NODES;
 	hidden_nodes = HIDDEN_NODES;
+	output_nodes = OUTPUT_NODES;
 	learning_rate = LEARNING_RATE;
-
-
 }
 
 void ANeuralNetwork::BeginPlay()
 {
+	file.open("U:\\projects\\testingAITools\\AITools\\Saved\\file_training.csv", std::ios::out | std::ios::trunc | std::ios::ate);
+	if (!file.is_open()) {
+		UE_LOG(LogTemp, Warning, TEXT("File not opening"));
+	}
 	controller = GetWorld()->GetFirstPlayerController();
 
-	for (int i = 0, x = 0; i < ONE_SIDE_HINGE; i++, x += 75) {
-		for (int j = 0, y = 0; j < ONE_SIDE_HINGE; j++, y += 75) {
-			int idx = i * ONE_SIDE_HINGE + j;
-			hinges[idx] = GetWorld()->SpawnActor<AHingePair>(FVector(x, y, 100), FRotator(150, 0, 0));
+	for (int i = 0, x = 0; i < ONE_SIDE_HINGES; i++, x += 100) {
+		for (int j = 0, y = 0; j < ONE_SIDE_HINGES; j++, y += 100) {
+			int idx = i * ONE_SIDE_HINGES + j;
+			hinges[idx] = GetWorld()->SpawnActor<AHingePair>(FVector(x, y, 0), FRotator(0, 0, 0));
 			hinges[idx]->setIndex(idx);
 		}
 	}
+	int X_rot = 0;
+	int Y_rot = 0;
+	int Z_rot = 0;
+	for (int i = 0, x = 0; i < ONE_SIDE_HINGES; i++, x += 75) {
+		for (int j = 0, y = 0; j < ONE_SIDE_HINGES; j++, y += 75) {
+			int idx = i * ONE_SIDE_HINGES + j;
+			hinges[idx]->AddActorLocalRotation(FRotator(Y_rot, Z_rot, X_rot));
+			X_rot += 45;
+			if (X_rot >= 360 - 45) {
+				Y_rot += 45;
+				X_rot = 0;
+			}
+			if (Y_rot >= 360 - 45) {
+				Z_rot += 45;
+				Y_rot = 0;
+			}
+
+		}
+	}
+
+
 	input = Mat(input_nodes, 1);
 	hidden = Mat(hidden_nodes, 1);
 	out = Mat(output_nodes, 1);
@@ -55,12 +78,22 @@ void ANeuralNetwork::Tick(float DeltaTime)
 	//test++;
 	//return;
 
-	if (controller->IsInputKeyDown(EKeys::R)) {
+
+	if (controller->IsInputKeyDown(EKeys::R) && drebezg == 0) {
+		
 		counter_tests = 0;
 		counter_right_tests = 0;
 		UE_LOG(LogTemp, Warning, TEXT("RESET COUNTERS:"));
-	}
+		drebezg++;
+		delta_time = 0;
+		launch = !launch;
 
+	}
+	//for (int i = 0; i < ONE_SIDE_HINGES * ONE_SIDE_HINGES; i++) {
+	//	hinges[i]->AddActorLocalRotation(FRotator(FMath::FRandRange(-1.0, 1.0), FMath::FRandRange(-1.0, 1.0), FMath::FRandRange(-1.0, 1.0)));
+	//}
+
+	
 	Mat target_output(1, 1);
 	Mat cur_input;
 	float angle;
@@ -69,7 +102,8 @@ void ANeuralNetwork::Tick(float DeltaTime)
 	float target_response;
 	float x, z;
 	FVector velocity;
-
+	FVector vector_up;
+	std::string line_to_write;
 	switch (state)
 	{
 	case STATE_FORWARD:
@@ -81,15 +115,12 @@ void ANeuralNetwork::Tick(float DeltaTime)
 			UE_LOG(LogTemp, Warning, TEXT("ERROR Sinhronization state"));
 			return;
 		}
-
-		for (int i = 0; i < 100; i++) {
+		
+		for (int i = 0; i < ONE_SIDE_HINGES * ONE_SIDE_HINGES; i++) {
 			counter_tests++;
-			//velocity = hinges[i]->getVelocityPartB();
-			//angle = hinges[i]->getAngle();
-			//koeff = hinges[i]->getKoeff();
-			//anlgeTo = hinges[i]->getNeedAngle();
-			hinges[i]->getParameters(angle, anlgeTo, velocity, koeff, target_response);
-
+			hinges[i]->getParameters(angle, anlgeTo, velocity, koeff, target_response, vector_up);
+			vector_up *= 0.999;
+			vector_up += FVector(0.0001, 0.0001, 0.0001);
 			if (FMath::IsNearlyZero(velocity.X))
 				x = 1 / MAX_VELOCITY;
 			else
@@ -100,18 +131,19 @@ void ANeuralNetwork::Tick(float DeltaTime)
 				z = velocity.Z / MAX_VELOCITY;
 
 			if (angle > MAX_ANGLE_HINGE)
-				angle = 0.999;
+				angle = 0.9999;
 			else if (angle < 0)
-				angle = 0.001;
+				angle = 0.0001;
 			else
 				angle /= MAX_ANGLE_HINGE;
 
 
 			
-			input = Mat(5, 1);
-			input << x, z, angle, anlgeTo / MAX_ANGLE_HINGE, koeff;
+			input = Mat(INPUT_NODES, 1);
+			//input << x, z, vector_up.X, vector_up.Y, vector_up.Z, angle, anlgeTo / MAX_ANGLE_HINGE, koeff;
 			//printMatrix(input, "INPUT");
-			forward();
+			//forward();
+
 
 
 			if ((out(0, 0) > 0.5 && target_response > 0.5) || (out(0,0) < 0.5 && target_response < 0.5)) {
@@ -119,23 +151,65 @@ void ANeuralNetwork::Tick(float DeltaTime)
 			}
 
 			target_output(0, 0) = target_response;
-			backward(target_output);
+			//backward(target_output);
+			if (delta_time > 0.23 && launch) {
+				//printMatrix(out, "OUT");
 
+				line_to_write += std::to_string(target_response);
+				line_to_write += ",";
+				line_to_write += std::to_string(x);
+				line_to_write += ",";
+				line_to_write += std::to_string(z);
+				line_to_write += ",";
+				line_to_write += std::to_string(vector_up.X);
+				line_to_write += ",";
+				line_to_write += std::to_string(vector_up.Y);
+				line_to_write += ",";
+				line_to_write += std::to_string(vector_up.Z);
+				line_to_write += ",";
+				line_to_write += std::to_string(angle);
+				line_to_write += ",";
+				line_to_write += std::to_string(anlgeTo / MAX_ANGLE_HINGE);
+				line_to_write += ",";
+				line_to_write += std::to_string(koeff);
+				line_to_write += "\n";
+				file << line_to_write;
+				line_to_write.clear();
+				//UE_LOG(LogTemp, Warning, TEXT("MIDDLE VALUE RESULT %f of %d tests"), (float)counter_right_tests / (float)counter_tests, counter_tests);
+				drebezg = 0;
+				if (i == ONE_SIDE_HINGES * ONE_SIDE_HINGES - 1) {
+					UE_LOG(LogTemp, Warning, TEXT("Count samples %d "), count_samples);
+					delta_time = 0;
+				}
+				count_samples++;
+			}
+
+			if (delta_time > 0.23) {
+				hinges[i]->AddActorLocalRotation(FRotator(FMath::FRandRange(-10.0, 10.0), FMath::FRandRange(-10.0, 10.0), FMath::FRandRange(-10.0, 10.0)));
+				if (i == ONE_SIDE_HINGES * ONE_SIDE_HINGES - 1) {
+					//UE_LOG(LogTemp, Warning, TEXT("Count samples %d "), count_samples);
+					delta_time = 0;
+				}
+			}
 		}
+		
 		//if(counter_tests == 200 * 100)
 		//	UKismetSystemLibrary::QuitGame(GetWorld(), controller, EQuitPreference::Quit, true);
 		delta_time += DeltaTime;
-		if (delta_time > 0.3) {
-			printMatrix(out, "OUT");
-			UE_LOG(LogTemp, Warning, TEXT("MIDDLE VALUE RESULT %f of %d tests"), (float)counter_right_tests / (float)counter_tests, counter_tests);
-
-			delta_time = 0;
-		}
+		//if (delta_time > 0.5) {
+		////	//printMatrix(out, "OUT");
+		////	UE_LOG(LogTemp, Warning, TEXT("MIDDLE VALUE RESULT %f of %d tests"), (float)counter_right_tests / (float)counter_tests, counter_tests);
+		////	for (int i = 0; i < ONE_SIDE_HINGES * ONE_SIDE_HINGES; i++) {
+		////		hinges[i]->AddActorLocalRotation(FRotator(FMath::FRandRange(-1.0, 1.0), FMath::FRandRange(-1.0, 1.0), FMath::FRandRange(-1.0, 1.0)));
+		////	}
+		//	delta_time = 0;
+		//}
 		state = STATE_FORWARD;
 		break;
 	default:
 		break;
 	}
+	
 }
 
 inline void ANeuralNetwork::forward() {
@@ -190,6 +264,14 @@ Mat ANeuralNetwork::getOutput()
 
 inline float ANeuralNetwork::Sigmoid(const float z) {
 	return 1.0 / (1.0 + exp(-z));
+}
+
+inline void ANeuralNetwork::BeginDestroy()
+{
+	file.close();
+	//delete file;
+	Super::BeginDestroy();
+	//UE_LOG(LogTemp, Warning, TEXT("after destroy"));
 }
 
 //inline void NeuralNetwork::query(const std::vector<std::pair<int, std::vector<float>*> >& vec_input_query) {

@@ -78,7 +78,7 @@ public:
 	float getKoeff();
 	float getNeedAngle();
 	int getCounterFrames();
-	void getParameters(float &cur_angle, float &need_angle, FVector &_velocity, float &_koef, float &_target_response);
+	void getParameters(float &cur_angle, float &need_angle, FVector &_velocity, float &_koef, float &_target_response, FVector &_up_vector);
 
 private:
 	void initPhysicsConstraints();
@@ -90,9 +90,11 @@ private:
 	FVector velocity;
 	FVector groundForce;
 	float save_need_angle = 0;
-	float last_angle = 0;
+	float last_angle = -100.0f;
 	float target_response;
 	int test = 0;
 	int counter_frames = 0;
+
+
 
 };

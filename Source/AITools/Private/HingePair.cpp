@@ -86,16 +86,28 @@ inline void AHingePair::BeginDestroy()
 void AHingePair::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	counter_frames++;
 	//printTransform();
 	//UE_LOG(LogTemp, Warning, TEXT("%s %d"), *GetName(), test);
 	//test++;
 	//return ;
 
+	//DrawDebugLine(GetWorld(), partB->GetComponentLocation(), partB->GetComponentLocation() + (partB->GetUpVector() * 30), FColor::Green, false, -1.0, 0, 2);
 
 	//velocity = partB->GetComponentVelocity();
 
-	float force = 1500;
+	//AddActorLocalRotation(FRotator(0, FMath::FRandRange(0, 5.0), 0));
+	if(FMath::IsNearlyEqual(last_angle, (float)-100.0))
+		return;
+	float angle = getAngle();
+	last_angle = angle;
+	if (FMath::IsNearlyEqual(angle, (float)100.0, (float)0.1)) 
+		return;
+
+	
+	/*
+	
+	counter_frames++;
+	float force = 4000;
 	float angle = 0;
 	float random_angle = 0;
 	FVector force_vector = getVForceDecrease();
@@ -105,8 +117,12 @@ void AHingePair::Tick(float DeltaTime)
 		complate = false;
 
 		angle = getAngle();
-		random_angle = FMath::FRandRange(10.0, 50.0);
-		if (angle + 50.0 < MAX_ANGLE_HINGE)
+		random_angle = FMath::FRandRange(1.0, 50.0);
+		if (!FMath::RandBool()) {
+			random_angle *= -1.0;
+			force_vector *= -1.0;
+		}
+		if (angle + random_angle < MAX_ANGLE_HINGE && angle + random_angle > 0)
 			save_need_angle = random_angle;
 		else {
 			save_need_angle = -random_angle;
@@ -116,7 +132,9 @@ void AHingePair::Tick(float DeltaTime)
 
 		
 
-		koeff = FMath::FRandRange(-1, 1) * 0.9999;
+		koeff = FMath::FRandRange(0, 1) * 0.9999 + 0.00001;
+		if(!FMath::RandBool())
+			koeff *= -1.0;
 		force *= koeff;
 		force_vector *= force;
 		partB->AddForce(force_vector);
@@ -135,16 +153,17 @@ void AHingePair::Tick(float DeltaTime)
 	default:
 		break;
 	}
-
+	*/
 }
 
-void AHingePair::getParameters(float& cur_angle, float& need_angle, FVector& _velocity, float &_koef, float &_target_response)
+void AHingePair::getParameters(float& cur_angle, float& need_angle, FVector& _velocity, float &_koef, float &_target_response, FVector &_up_vector)
 {
 	cur_angle = getAngle();
 	need_angle = save_need_angle;
 	_velocity = partB->GetComponentVelocity();
 	_koef = koeff;
 	_target_response = target_response;
+	_up_vector = partB->GetUpVector();
 }
 
 
