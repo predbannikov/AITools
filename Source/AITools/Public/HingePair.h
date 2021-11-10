@@ -84,6 +84,49 @@ private:
 	void initPhysicsConstraints();
 	void startPhysicsConstraints();
 
+	struct HingeInfo {
+		enum ETYPE {SHRINK, EXPAND};
+		HingeInfo(ETYPE type = ETYPE::EXPAND, AHingePair* _parent = nullptr) : parent(_parent), etype(type) {
+			if (etype == SHRINK)
+				koeff = 1.0;
+			else
+				koeff = -1.0;
+			force = 100.0;
+		}
+		ETYPE etype;
+		float force;
+		float koeff;
+		float angle;
+		static float last_angle;
+		static float target_angle;
+		FString getType() {
+			if (etype == SHRINK)
+				return FString("SHRINK");
+			return FString("EXPAND");
+		}
+		float getAngleLeft() {
+			if (etype == SHRINK)
+				return parent->getAngle() - target_angle;
+			return target_angle - parent->getAngle();
+		}
+		void prop(float _angle) {
+			angle = _angle;
+			
+		}
+		void setAngle(float _angle) {
+			angle = _angle;
+		}
+		FVector getForce() {
+			FVector force_vector = etype == SHRINK ? parent->getVForceDecrease() : parent->getVForceIncrease();
+			force_vector *= force * koeff;
+			return force_vector;
+		}
+	private:
+		AHingePair* parent = nullptr;
+	};
+	HingeInfo shrink, expand;
+
+	APlayerController* controller = nullptr;
 	bool complate;
 	int index = -1;
 	float koeff = -1;
@@ -95,8 +138,11 @@ private:
 	float target_response;
 	int test = 0;
 	float last_force;
+	float last_sign;
 	int counter_frames = 0;
-
+	bool launch = false;
+	float delta_second = 0;
+	//float koeef_need_turn = 0.01;
 
 
 };

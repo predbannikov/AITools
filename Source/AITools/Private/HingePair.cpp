@@ -4,8 +4,8 @@
 #include "HingePair.h"
 #include "DrawDebugHelpers.h"
 
-
-
+float AHingePair::HingeInfo::last_angle = 1.0;
+float AHingePair::HingeInfo::target_angle = 1.0;
 // Sets default values
 AHingePair::AHingePair()
 {
@@ -71,18 +71,18 @@ void AHingePair::BeginPlay()
 {
 	startPhysicsConstraints();
 	Super::BeginPlay();
+	last_force = 4000.0;
+	last_angle = getAngle();
+	last_delta_turn = 0.01f;
+	controller = GetWorld()->GetFirstPlayerController();
+
 	//float mass = partB->GetMass();
 	//UE_LOG(LogTemp, Warning, TEXT("mass = %f"), mass);
 }
 
 inline void AHingePair::BeginDestroy()
 {
-	//UE_LOG(LogTemp, Warning, TEXT("befor destroy"));
 	Super::BeginDestroy();
-	//UE_LOG(LogTemp, Warning, TEXT("after destroy"));
-	last_force = 4000.0;
-	last_angle = getAngle();
-
 }
 
 // Called every frame
@@ -101,25 +101,102 @@ void AHingePair::Tick(float DeltaTime)
 	//AddActorLocalRotation(FRotator(0, FMath::FRandRange(0, 5.0), 0));
 	float const ANGLE_TO_BE_TURN = 100.0;
 
-	float angle = getAngle();
-	if (FMath::IsNearlyEqual(angle, (float)ANGLE_TO_BE_TURN, (float)0.1))
+	if (delta_second > 1.0 && !launch) {
+		launch = true;
+		last_force = 100.0;
+		last_angle = getAngle();
+		last_delta_turn = 0.01f;
+		last_sign = 1.0;
+
+		shrink = HingeInfo(HingeInfo::ETYPE::SHRINK, this);
+		shrink.target_angle = ANGLE_TO_BE_TURN;
+		expand = HingeInfo(HingeInfo::ETYPE::EXPAND, this);
+		expand.target_angle = ANGLE_TO_BE_TURN;
+	}
+	delta_second += DeltaTime;
+	if (!launch)
 		return;
 
-	float was_need_angle_turn = ANGLE_TO_BE_TURN - last_angle;
-	float new_need_angle_turn = ANGLE_TO_BE_TURN - angle;
-	float delta_turn = was_need_angle_turn - new_need_angle_turn;
 
-	float ration_turn = delta_turn / last_delta_turn;
+	float angle = getAngle();
+	//if (FMath::IsNearlyEqual(angle, (float)ANGLE_TO_BE_TURN, (float)0.1))
+	//	return;
+	FString str;
 
-	last_force *= ration_turn;
-	FVector force_vector = getVForceDecrease();
-	force_vector *= last_force;
-	partB->AddForce(force_vector);
-	UE_LOG(LogTemp, Warning, TEXT("%f, %f"), last_force, ration_turn);
+	//float delta_turn = abs(HingeInfo::last_need_angle_turn) - abs(HingeInfo::now_need_angle_turn);	// ”гол на которорый изменилось в итоге
+	//float delta_delta_turn = delta_turn - last_delta_turn;
+	//bool change_direct = FMath::RoundToInt(abs(HingeInfo::last_need_angle_turn) / HingeInfo::last_need_angle_turn) != FMath::RoundToInt(abs(HingeInfo::now_need_angle_turn) / HingeInfo::now_need_angle_turn);
+	//if (change_direct) {
+	//	delta_turn *= -1;
+	//}
+	//HingeInfo& hing = delta_turn >= 0 ? shrink : expand;
+	//if (change_direct) {
+
+	//}
+	//float k = 1.0;
+
+	//if (delta_delta_turn > 1 && delta_delta_turn <= 2) {
+	//	k *= 0.99;
+	//}
+	//else if (delta_delta_turn > 2 && delta_delta_turn <= 4) {
+	//	k *= 0.95;
+	//}
+
+	//if (abs(HingeInfo::now_need_angle_turn) < 180 && abs(HingeInfo::now_need_angle_turn) >= 90) {
+	//	hing.koeff *= k * 1.3;
+	//}
+	//else if (abs(HingeInfo::now_need_angle_turn) < 90 && abs(HingeInfo::now_need_angle_turn) >= 85) {
+	//	hing.koeff *= k * 1.2;
+	//}
+	//else if (abs(HingeInfo::now_need_angle_turn) < 85 && abs(HingeInfo::now_need_angle_turn) >= 70) {
+	//	hing.koeff *= k * 1.1;
+	//}
+	//else if (abs(HingeInfo::now_need_angle_turn) < 70 && abs(HingeInfo::now_need_angle_turn) >= 30) {
+	//	hing.koeff *= k * 1.01;
+	//}
+	//else if (abs(HingeInfo::now_need_angle_turn) < 30 && abs(HingeInfo::now_need_angle_turn) >= 10) {
+	//	hing.koeff *= k * 1.005;
+	//}
+	//else if (abs(HingeInfo::now_need_angle_turn) < 1 && abs(HingeInfo::now_need_angle_turn) >= 0) {
+	//	hing.koeff *= k * -1.005;
+	//}
+
+	//if (FMath::RoundToInt(abs(HingeInfo::now_need_angle_turn) / HingeInfo::now_need_angle_turn) != FMath::RoundToInt(abs(HingeInfo::now_need_angle_turn) / HingeInfo::now_need_angle_turn))
+	//	hing.koeff *= -1;
+	
+
+	//last_force = abs(1000) * hing.koeff;
+
+	HingeInfo& hinge = angle > ANGLE_TO_BE_TURN ? shrink : expand;
+
+	if (hinge.getAngleLeft() >= 90 && hinge.getAngleLeft() < 360) {
+		hinge.koeff *= 1.3;
+	}
+	else if (hinge.getAngleLeft() >= 75 && hinge.getAngleLeft() < 90) {
+		hinge.koeff *= 1.2;
+	}
+	else if (hinge.getAngleLeft() >= 40 && hinge.getAngleLeft() < 75) {
+		hinge.koeff *= 1.1;
+	}
+	else if (hinge.getAngleLeft() >= 5 && hinge.getAngleLeft() < 40) {
+		hinge.koeff *= 1.01;
+	}
 
 
-	last_delta_turn = new_need_angle_turn;
-	last_angle = angle;
+	
+	
+	UE_LOG(LogTemp, Warning, TEXT("%s \t%f \t%f \t%f \t%f "), *hinge.getType(), hinge.last_angle, hinge.koeff, hinge.getAngleLeft());
+
+
+	partB->AddForce(hinge.getForce());
+	
+
+	//last_delta_turn = delta_turn;
+	hinge.last_angle = angle;
+	counter_frames++;
+	//if(counter_frames == 34)
+	//	UKismetSystemLibrary::QuitGame(GetWorld(), controller, EQuitPreference::Quit, true);
+
 	/*
 	
 	counter_frames++;
