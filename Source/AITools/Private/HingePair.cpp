@@ -4,9 +4,8 @@
 #include "HingePair.h"
 #include "DrawDebugHelpers.h"
 
-float AHingePair::HingeInfo::last_angle = 1.0;
-float AHingePair::HingeInfo::target_angle = 1.0;
-// Sets default values
+
+
 AHingePair::AHingePair()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -62,8 +61,8 @@ AHingePair::AHingePair()
 
 	initPhysicsConstraints();
 
-	root->GetOwner()->SetActorRelativeRotation(FRotator(-50, 0, 0));
-	root->GetOwner()->SetActorRelativeLocation(FVector(0, 0, 50));
+	//root->GetOwner()->SetActorRelativeRotation(FRotator(-50, 0, 0));
+	//root->GetOwner()->SetActorRelativeLocation(FVector(0, 0, 50));
 }
 
 // Called when the game starts or when spawned
@@ -75,9 +74,8 @@ void AHingePair::BeginPlay()
 	last_angle = getAngle();
 	last_delta_turn = 0.01f;
 	controller = GetWorld()->GetFirstPlayerController();
-
 	//float mass = partB->GetMass();
-	//UE_LOG(LogTemp, Warning, TEXT("mass = %f"), mass);
+	UE_LOG(LogTemp, Warning, TEXT("---------------=BEGIN=---------------"));
 }
 
 inline void AHingePair::BeginDestroy()
@@ -101,101 +99,52 @@ void AHingePair::Tick(float DeltaTime)
 	//AddActorLocalRotation(FRotator(0, FMath::FRandRange(0, 5.0), 0));
 	float const ANGLE_TO_BE_TURN = 100.0;
 
-	if (delta_second > 1.0 && !launch) {
+	if (delta_second > 1.5 && !launch) {
 		launch = true;
 		last_force = 100.0;
 		last_angle = getAngle();
 		last_delta_turn = 0.01f;
 		last_sign = 1.0;
-
-		shrink = HingeInfo(HingeInfo::ETYPE::SHRINK, this);
-		shrink.target_angle = ANGLE_TO_BE_TURN;
-		expand = HingeInfo(HingeInfo::ETYPE::EXPAND, this);
-		expand.target_angle = ANGLE_TO_BE_TURN;
+		hinge.setHingePair(this);
+		hinge.setTargetAngle(ANGLE_TO_BE_TURN);
+		//partB->AddForce(getVForceDecrease() * 20000);
 	}
 	delta_second += DeltaTime;
 	if (!launch)
 		return;
 
 
-	float angle = getAngle();
 	//if (FMath::IsNearlyEqual(angle, (float)ANGLE_TO_BE_TURN, (float)0.1))
 	//	return;
 	FString str;
 
-	//float delta_turn = abs(HingeInfo::last_need_angle_turn) - abs(HingeInfo::now_need_angle_turn);	// Угол на которорый изменилось в итоге
-	//float delta_delta_turn = delta_turn - last_delta_turn;
-	//bool change_direct = FMath::RoundToInt(abs(HingeInfo::last_need_angle_turn) / HingeInfo::last_need_angle_turn) != FMath::RoundToInt(abs(HingeInfo::now_need_angle_turn) / HingeInfo::now_need_angle_turn);
-	//if (change_direct) {
-	//	delta_turn *= -1;
-	//}
-	//HingeInfo& hing = delta_turn >= 0 ? shrink : expand;
-	//if (change_direct) {
 
-	//}
-	//float k = 1.0;
-
-	//if (delta_delta_turn > 1 && delta_delta_turn <= 2) {
-	//	k *= 0.99;
-	//}
-	//else if (delta_delta_turn > 2 && delta_delta_turn <= 4) {
-	//	k *= 0.95;
-	//}
-
-	//if (abs(HingeInfo::now_need_angle_turn) < 180 && abs(HingeInfo::now_need_angle_turn) >= 90) {
-	//	hing.koeff *= k * 1.3;
-	//}
-	//else if (abs(HingeInfo::now_need_angle_turn) < 90 && abs(HingeInfo::now_need_angle_turn) >= 85) {
-	//	hing.koeff *= k * 1.2;
-	//}
-	//else if (abs(HingeInfo::now_need_angle_turn) < 85 && abs(HingeInfo::now_need_angle_turn) >= 70) {
-	//	hing.koeff *= k * 1.1;
-	//}
-	//else if (abs(HingeInfo::now_need_angle_turn) < 70 && abs(HingeInfo::now_need_angle_turn) >= 30) {
-	//	hing.koeff *= k * 1.01;
-	//}
-	//else if (abs(HingeInfo::now_need_angle_turn) < 30 && abs(HingeInfo::now_need_angle_turn) >= 10) {
-	//	hing.koeff *= k * 1.005;
-	//}
-	//else if (abs(HingeInfo::now_need_angle_turn) < 1 && abs(HingeInfo::now_need_angle_turn) >= 0) {
-	//	hing.koeff *= k * -1.005;
-	//}
 
 	//if (FMath::RoundToInt(abs(HingeInfo::now_need_angle_turn) / HingeInfo::now_need_angle_turn) != FMath::RoundToInt(abs(HingeInfo::now_need_angle_turn) / HingeInfo::now_need_angle_turn))
 	//	hing.koeff *= -1;
 	
+	if (FMath::IsNearlyEqual(getAngle(), 100, 15))
+		lock = true;
 
-	//last_force = abs(1000) * hing.koeff;
-
-	HingeInfo& hinge = angle > ANGLE_TO_BE_TURN ? shrink : expand;
-
-	if (hinge.getAngleLeft() >= 90 && hinge.getAngleLeft() < 360) {
-		hinge.koeff *= 1.3;
-	}
-	else if (hinge.getAngleLeft() >= 75 && hinge.getAngleLeft() < 90) {
-		hinge.koeff *= 1.2;
-	}
-	else if (hinge.getAngleLeft() >= 40 && hinge.getAngleLeft() < 75) {
-		hinge.koeff *= 1.1;
-	}
-	else if (hinge.getAngleLeft() >= 5 && hinge.getAngleLeft() < 40) {
-		hinge.koeff *= 1.01;
-	}
+	//if (lock) {
+	//	UE_LOG(LogTemp, Warning, TEXT("%f \t%f \t%f \t%f "), getAngle());
+	//	return;
+	//}
 
 
-	
-	
-	UE_LOG(LogTemp, Warning, TEXT("%s \t%f \t%f \t%f \t%f "), *hinge.getType(), hinge.last_angle, hinge.koeff, hinge.getAngleLeft());
+	hinge.tick();
+	hinge.printMem();
+	//UE_LOG(LogTemp, Warning, TEXT("%s \t%f \t%f \t%f \t%f "), *hinge.getType(), hinge.getKoeff(), hinge.getLeftAngleTurn());
 
 
 	partB->AddForce(hinge.getForce());
-	
+	//if(counter_frames == 0)
+	//	partB->AddForce(getVForceDecrease() * 21000);
+	//UE_LOG(LogTemp, Warning, TEXT("%f \t%f \t%f \t%f "), getAngle());
 
-	//last_delta_turn = delta_turn;
-	hinge.last_angle = angle;
 	counter_frames++;
-	//if(counter_frames == 34)
-	//	UKismetSystemLibrary::QuitGame(GetWorld(), controller, EQuitPreference::Quit, true);
+	if(counter_frames == 7)
+		UKismetSystemLibrary::QuitGame(GetWorld(), controller, EQuitPreference::Quit, true);
 
 	/*
 	
@@ -249,6 +198,235 @@ void AHingePair::Tick(float DeltaTime)
 	*/
 }
 
+
+HingeInfo::HingeInfo() 
+{
+	for (int i = 0; i < MEM_HINGE_INFO; i++) {
+		k_shrinks[i] = 1.0f;
+		k_expands[i] = -1.0f;
+		signs_delta_turn[i] = 0;
+		delta_turn_angles[0] = 1;
+	}
+	force = 1.0;
+	k_force = 1.0;
+}
+
+float HingeInfo::getDeltaKoeff()
+{
+	if (etype == SHRINK)
+		return k_shrinks[1] - k_shrinks[0];
+	else
+		return k_expands[1] - k_expands[0];
+}
+
+inline FString HingeInfo::getType() {
+	if (etype == SHRINK)
+		return FString("SHRINK");
+	return FString("EXPAND");
+}
+
+inline void HingeInfo::setTargetAngle(float target) {
+	target_angle = target;
+
+	//angles[0] = parent->getAngle();	
+}
+
+float HingeInfo::getDeltaTurn()
+{
+	//if (etype == SHRINK)
+	//	return angles[0] - angle;
+	float delta = angle - angles[0];
+	return delta == 0 ? 0.000001 : delta;
+}
+
+void HingeInfo::incKoeff(float arg)
+{
+	if (etype == SHRINK) {
+		k_shrink = arg;
+		k_expand = arg;
+	}
+	else {
+		k_expand = arg;
+		k_shrink = arg;
+	}
+}
+
+void HingeInfo::decrKoeff(float arg)
+{
+	//if (etype == SHRINK) {
+	//	k_shrinks[0] / arg;
+	//	k_expands[0] * arg;
+	//}
+	//else {
+	//	k_expands[0] / arg;
+	//	k_shrinks[0] * arg;
+	//}
+}
+
+float HingeInfo::getLeftAngleTurn()
+{
+	if (etype == SHRINK)
+		return angle - target_angle;
+	return target_angle - angle;
+}
+
+float HingeInfo::updateKoeffs(float _k)
+{
+	if (getLeftAngleTurn() >= 90 && getLeftAngleTurn() < 360) {
+		return _k * 0.9;
+	}
+	else if (getLeftAngleTurn() >= 75 && getLeftAngleTurn() < 90) {
+		return _k * 0.8;
+	}
+	else if (getLeftAngleTurn() >= 40 && getLeftAngleTurn() < 75) {
+		return _k * 0.7;
+	}
+	else if (getLeftAngleTurn() >= 5 && getLeftAngleTurn() < 40) {
+		return _k * 0.5;
+	}
+	return _k;
+}
+
+inline void HingeInfo::tick() 
+{
+	begin();
+	//updateKoeffs(getLeftAngleTurn());
+
+	//sign_delta = delta_turn_angle > delta_turn_angles[0] ? 1 : -1;		// увеличивается скорость?
+	//k_mult = 1.0;
+
+	float k = 1.0;
+	if (count_ticks == 1) {
+		k_shrink = abs(getLeftAngleTurn()) / abs(delta_turn_angle);
+		k_expand = 1.0;
+		//k_force = k_mult ;
+		//k_shrink = k_force;
+	}
+	else if (count_ticks > 1) {
+		//if (etype != last_etype) {
+		//	if (etype == EXPAND) {
+		//		float ee = getLeftAngleTurn() / (abs(angles[0]) - angle);	// Колличество которое необходимо было
+		//		k_shrink *= ee;
+		//		UE_LOG(LogTemp, Warning, TEXT("eee = %f"), ee);
+		//	}
+		//	else if (etype == SHRINK) {
+		//		float ee = getLeftAngleTurn() / (angle - abs(angles[0]));	// Колличество которое необходимо было
+		//		k_expand *= ee;
+		//		UE_LOG(LogTemp, Warning, TEXT("eee = %f"), ee);
+		//	}
+		//}
+		if (etype == SHRINK) {
+			error = getLeftAngleTurn() / (abs(angles[0]) - target_angle);
+			k_shrink *= error;
+			if(getLeftAngleTurn() < abs(delta_turn_angle )) {
+				float ee = getLeftAngleTurn() / (abs(angles[0]) - angle);	// Колличество которое необходимо было
+				k_shrink *= ee;
+				UE_LOG(LogTemp, Warning, TEXT("eee = %f %f"), ee, k_shrink);
+			}
+		}
+		else {
+			error = getLeftAngleTurn() / (target_angle - abs(angles[0]));
+			if (getLeftAngleTurn() > abs(delta_turn_angle))
+				k_expand *= error;
+			else {
+				float ee = getLeftAngleTurn() / (angle - abs(angles[0]));	// Колличество которое необходимо было
+				k_expand *= ee;
+				UE_LOG(LogTemp, Warning, TEXT("eee2 = %f %f"), ee, k_expand);
+			}
+		}
+
+		//k_force = -1;
+	}
+
+	end();
+	count_ticks++;
+}
+
+inline FVector HingeInfo::getForce() {
+	FVector force_vector = parent->getVForceDecrease();
+	force_vector *= force * getKoeff();
+	return force_vector;
+}
+
+float HingeInfo::getKoeff()
+{
+	if(etype == SHRINK)
+		return k_shrinks[0];
+	return k_expands[0];
+}
+
+void HingeInfo::setHingePair(AHingePair* _parent)
+{
+	parent = _parent;
+	angles[0] = parent->getAngle();
+}
+
+void HingeInfo::updateMem()
+{
+	for (int i = MEM_HINGE_INFO - 1; i > 0; i--) {
+		k_shrinks[i] = k_shrinks[i - 1];
+		k_expands[i] = k_expands[i - 1];
+		angles[i] = angles[i - 1];
+		delta_turn_angles[i] = delta_turn_angles[i - 1];
+		signs_delta_turn[i] = signs_delta_turn[i - 1];
+	}
+	delta_turn_angles[0] = delta_turn_angle;
+	angles[0] = angle;
+	signs_delta_turn[0] = sign_delta;
+	k_shrinks[0] = k_shrink;
+	k_expands[0] = k_expand;
+}
+
+void HingeInfo::begin()
+{
+	angle = parent->getAngle();
+	if (angle > target_angle)
+		etype = SHRINK;
+	else
+		etype = EXPAND;
+	delta_turn_angle = getDeltaTurn();
+}
+
+void HingeInfo::end()
+{
+	updateMem();
+}
+
+void HingeInfo::printMem()
+{
+	FString str; 
+	str.Append(FString::Printf(TEXT("%s:\t"), *getType()));
+	str.Append(FString::Printf(TEXT("%s:\t"), *FString("signs")));
+	for (int i = 0; i < MEM_HINGE_INFO; i++) {
+		str.Append(FString::Printf(TEXT("%d\t"), signs_delta_turn[i]));
+	}
+	UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
+	str.Reset();
+	str.Append(FString::Printf(TEXT("\t\t")));
+	str.Append(FString::Printf(TEXT("%s:\t"), *FString("delta")));
+	for (int i = 0; i < MEM_HINGE_INFO; i++) {
+		str.Append(FString::Printf(TEXT("%f\t"), delta_turn_angles[i]));
+	}
+	UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
+	str.Reset();
+	str.Append(FString::Printf(TEXT("\t\t")));
+	str.Append(FString::Printf(TEXT("%s:\t"), *FString("koeff")));
+	float* koeff = etype == SHRINK ? &k_shrinks[0] : &k_expands[0];
+	for (int i = 0; i < MEM_HINGE_INFO; i++) {
+		str.Append(FString::Printf(TEXT("%f\t"), koeff[i]));
+	}
+	UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
+	str.Reset();
+	str.Append(FString::Printf(TEXT("\t\t")));
+	str.Append(FString::Printf(TEXT("%s:\t"), *FString("angle")));
+	for (int i = 0; i < MEM_HINGE_INFO; i++) {
+		str.Append(FString::Printf(TEXT("%f\t"), angles[i]));
+	}
+	UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
+	UE_LOG(LogTemp, Warning, TEXT("%f"), k_mult);
+	UE_LOG(LogTemp, Warning, TEXT("%f"), error);
+}
+
 void AHingePair::getParameters(float& cur_angle, float& need_angle, FVector& _velocity, float &_koef, float &_target_response, FVector &_up_vector)
 {
 	cur_angle = getAngle();
@@ -258,7 +436,6 @@ void AHingePair::getParameters(float& cur_angle, float& need_angle, FVector& _ve
 	_target_response = target_response;
 	_up_vector = partB->GetUpVector();
 }
-
 
 FVector AHingePair::getVForceDecrease()
 {
@@ -276,7 +453,7 @@ FVector AHingePair::getVForceIncrease()
 	return forwardVector;
 }
 
-void AHingePair::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AHingePair::OnOverlapBegin(UPrimitiveComponent* OverlappedComp,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Begin overlap %s"), *GetName());
 }
@@ -309,12 +486,6 @@ void AHingePair::startPhysicsConstraints()
 	physicsConstraint->SetConstrainedComponents(partB, "Member B", partA, "Member A");
 	partB->SetSimulatePhysics(true);
 }
-
-//void AHingePair::getResult(float& target, Mat& mat)
-//{
-//	target = target_response;
-//	mat = input;
-//}
 
 float AHingePair::getTargetResponse()
 {
@@ -403,4 +574,3 @@ UFUNCTION()
 void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 */
-

@@ -16,6 +16,53 @@
 #define ANGLE_ONESIDE_OFFSET	10.
 #define MAX_VELOCITY			10000.
 
+class AHingePair;
+
+#define MEM_HINGE_INFO	5 
+
+struct HingeInfo {
+	enum ETYPE { SHRINK, EXPAND };
+	HingeInfo();
+	ETYPE etype;
+	ETYPE last_etype;
+	float force = 100.0f;
+	float target_angle;
+	float angle;
+	float delta_turn_angle;
+	float delta_k_shrink;
+	float delta_k_expand;
+	float k_mult = 1;
+	float k_force = 1;
+	float k_shrinks[MEM_HINGE_INFO];
+	float k_shrink;
+	float k_expand;
+	float k_expands[MEM_HINGE_INFO];
+	float angles[MEM_HINGE_INFO];
+	float delta_turn_angles[MEM_HINGE_INFO];
+	int signs_delta_turn[MEM_HINGE_INFO];
+	int sign_delta;
+	float error = 1.0;
+	void incKoeff(float arg);
+	void decrKoeff(float arg);
+	float getDeltaKoeff();
+	FString getType();
+	void setTargetAngle(float target);
+	float getDeltaTurn();
+	float getLeftAngleTurn();
+	float updateKoeffs(float _k);
+	void tick();
+	FVector getForce();
+	float getKoeff();
+	void setHingePair(AHingePair* parent);
+	void updateMem();
+	void begin();
+	void end();
+	void printMem();
+	int count_ticks = 0;
+private:
+	AHingePair* parent = nullptr;
+};
+
 UCLASS()
 class AITOOLS_API AHingePair : public AActor
 {
@@ -84,47 +131,8 @@ private:
 	void initPhysicsConstraints();
 	void startPhysicsConstraints();
 
-	struct HingeInfo {
-		enum ETYPE {SHRINK, EXPAND};
-		HingeInfo(ETYPE type = ETYPE::EXPAND, AHingePair* _parent = nullptr) : parent(_parent), etype(type) {
-			if (etype == SHRINK)
-				koeff = 1.0;
-			else
-				koeff = -1.0;
-			force = 100.0;
-		}
-		ETYPE etype;
-		float force;
-		float koeff;
-		float angle;
-		static float last_angle;
-		static float target_angle;
-		FString getType() {
-			if (etype == SHRINK)
-				return FString("SHRINK");
-			return FString("EXPAND");
-		}
-		float getAngleLeft() {
-			if (etype == SHRINK)
-				return parent->getAngle() - target_angle;
-			return target_angle - parent->getAngle();
-		}
-		void prop(float _angle) {
-			angle = _angle;
-			
-		}
-		void setAngle(float _angle) {
-			angle = _angle;
-		}
-		FVector getForce() {
-			FVector force_vector = etype == SHRINK ? parent->getVForceDecrease() : parent->getVForceIncrease();
-			force_vector *= force * koeff;
-			return force_vector;
-		}
-	private:
-		AHingePair* parent = nullptr;
-	};
-	HingeInfo shrink, expand;
+
+	HingeInfo hinge;
 
 	APlayerController* controller = nullptr;
 	bool complate;
@@ -144,5 +152,5 @@ private:
 	float delta_second = 0;
 	//float koeef_need_turn = 0.01;
 
-
+	bool lock = false;
 };
