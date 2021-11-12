@@ -28,7 +28,7 @@ struct HingeInfo {
 	float force = 100.0f;
 	float target_angle;
 	float angle;
-	float delta_turn_angle;
+	float delta_turn_angle_signfied;
 	float delta_k_shrink;
 	float delta_k_expand;
 	float k_mult = 1;

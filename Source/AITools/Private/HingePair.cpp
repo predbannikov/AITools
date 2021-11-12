@@ -207,6 +207,8 @@ HingeInfo::HingeInfo()
 		signs_delta_turn[i] = 0;
 		delta_turn_angles[0] = 1;
 	}
+	k_shrink = 1.0;
+	k_expand = 1.0;
 	force = 1.0;
 	k_force = 1.0;
 }
@@ -292,50 +294,57 @@ inline void HingeInfo::tick()
 	begin();
 	//updateKoeffs(getLeftAngleTurn());
 
-	//sign_delta = delta_turn_angle > delta_turn_angles[0] ? 1 : -1;		// увеличивается скорость?
+	//sign_delta = delta_turn_angle_signfied > delta_turn_angles[0] ? 1 : -1;		// увеличивается скорость?
 	//k_mult = 1.0;
 
-	float k = 1.0;
+	//float k = 1.0;
 	if (count_ticks == 1) {
-		k_shrink = abs(getLeftAngleTurn()) / abs(delta_turn_angle);
+		k_shrink *= abs(getLeftAngleTurn()) / abs(delta_turn_angle_signfied);
 		k_expand = 1.0;
 		//k_force = k_mult ;
 		//k_shrink = k_force;
 	}
 	else if (count_ticks > 1) {
-		//if (etype != last_etype) {
-		//	if (etype == EXPAND) {
-		//		float ee = getLeftAngleTurn() / (abs(angles[0]) - angle);	// Колличество которое необходимо было
-		//		k_shrink *= ee;
-		//		UE_LOG(LogTemp, Warning, TEXT("eee = %f"), ee);
-		//	}
-		//	else if (etype == SHRINK) {
-		//		float ee = getLeftAngleTurn() / (angle - abs(angles[0]));	// Колличество которое необходимо было
-		//		k_expand *= ee;
-		//		UE_LOG(LogTemp, Warning, TEXT("eee = %f"), ee);
-		//	}
-		//}
-		if (etype == SHRINK) {
-			error = getLeftAngleTurn() / (abs(angles[0]) - target_angle);
-			k_shrink *= error;
-			if(getLeftAngleTurn() < abs(delta_turn_angle )) {
+		if (etype != last_etype) {
+			if (etype == EXPAND) {
 				float ee = getLeftAngleTurn() / (abs(angles[0]) - angle);	// Колличество которое необходимо было
 				k_shrink *= ee;
 				UE_LOG(LogTemp, Warning, TEXT("eee = %f %f"), ee, k_shrink);
+
+
+
+				float ee = getLeftAngleTurn() / (abs(angles[0]) - angle);	// Мы сжимали и перескочили 
+				k_shrink *= ee;
+				UE_LOG(LogTemp, Warning, TEXT("rrr = %f"), ee);
+			}
+			else if (etype == SHRINK) {
+				float ee = getLeftAngleTurn() / (angle - abs(angles[0]));	// Мы разжимали и перескочили
+				k_expand *= ee;
+				UE_LOG(LogTemp, Warning, TEXT("rrr2 = %f"), ee);
 			}
 		}
 		else {
-			error = getLeftAngleTurn() / (target_angle - abs(angles[0]));
-			if (getLeftAngleTurn() > abs(delta_turn_angle))
-				k_expand *= error;
-			else {
-				float ee = getLeftAngleTurn() / (angle - abs(angles[0]));	// Колличество которое необходимо было
-				k_expand *= ee;
-				UE_LOG(LogTemp, Warning, TEXT("eee2 = %f %f"), ee, k_expand);
+			if (etype == SHRINK) {
+				error = getLeftAngleTurn() / (abs(angles[0]) - target_angle);
+				k_shrink *= error;
+				if(getLeftAngleTurn() < abs(delta_turn_angle_signfied )) {
+					float ee = getLeftAngleTurn() / (abs(angles[0]) - angle);	// Колличество которое необходимо было
+					k_shrink *= ee;
+					UE_LOG(LogTemp, Warning, TEXT("eee = %f %f"), ee, k_shrink);
+				}
 			}
-		}
+			else {
+				error = getLeftAngleTurn() / (target_angle - abs(angles[0]));
+				if (getLeftAngleTurn() > abs(delta_turn_angle_signfied))
+					k_expand *= error;
+				else {
+					float ee = getLeftAngleTurn() / (angle - abs(angles[0]));	// Колличество которое необходимо было
+					k_expand *= ee;
+					UE_LOG(LogTemp, Warning, TEXT("eee2 = %f %f"), ee, k_expand);
+				}
+			}
 
-		//k_force = -1;
+		}
 	}
 
 	end();
@@ -370,7 +379,7 @@ void HingeInfo::updateMem()
 		delta_turn_angles[i] = delta_turn_angles[i - 1];
 		signs_delta_turn[i] = signs_delta_turn[i - 1];
 	}
-	delta_turn_angles[0] = delta_turn_angle;
+	delta_turn_angles[0] = delta_turn_angle_signfied;
 	angles[0] = angle;
 	signs_delta_turn[0] = sign_delta;
 	k_shrinks[0] = k_shrink;
@@ -384,7 +393,7 @@ void HingeInfo::begin()
 		etype = SHRINK;
 	else
 		etype = EXPAND;
-	delta_turn_angle = getDeltaTurn();
+	delta_turn_angle_signfied = getDeltaTurn();
 }
 
 void HingeInfo::end()
