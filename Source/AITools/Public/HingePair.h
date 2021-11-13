@@ -21,14 +21,17 @@ class AHingePair;
 #define MEM_HINGE_INFO	5 
 
 struct HingeInfo {
-	enum ETYPE { SHRINK, EXPAND };
+	enum ETYPE { SHRINK, EXPAND, NON };
 	HingeInfo();
-	ETYPE etype;
-	ETYPE last_etype;
+	ETYPE etype = SHRINK;
+	ETYPE last_etype = NON;
 	float force = 100.0f;
+	float mass = 1.0f;
 	float target_angle;
 	float angle;
-	float delta_turn_angle_signfied;
+	void updateShrink();
+	void updateExpand();
+	float delta_turn;
 	float delta_k_shrink;
 	float delta_k_expand;
 	float k_mult = 1;
@@ -43,7 +46,6 @@ struct HingeInfo {
 	int sign_delta;
 	float error = 1.0;
 	void incKoeff(float arg);
-	void decrKoeff(float arg);
 	float getDeltaKoeff();
 	FString getType();
 	void setTargetAngle(float target);
@@ -56,7 +58,6 @@ struct HingeInfo {
 	void setHingePair(AHingePair* parent);
 	void updateMem();
 	void begin();
-	void end();
 	void printMem();
 	int count_ticks = 0;
 private:

@@ -46,13 +46,13 @@ AHingePair::AHingePair()
 
 	pointA = CreateDefaultSubobject<USceneComponent>(FName("Point A"));
 	//pointA->AttachToComponent(partA, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-	pointA->SetupAttachment(root);
-	pointA->SetRelativeLocation(pointA->GetRelativeLocation() + FVector(-5, 0, 15));
+	pointA->SetupAttachment(partB);
+	pointA->SetRelativeLocation(pointA->GetRelativeLocation() + FVector(-15, 0, -15));
 	pointA->SetMobility(EComponentMobility::Movable);
 
 	pointB = CreateDefaultSubobject<USceneComponent>(FName("Point B"));
 	//pointB->AttachToComponent(partB, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-	pointB->SetupAttachment(root);
+	pointB->SetupAttachment(partB);
 	pointB->SetRelativeLocation(pointB->GetRelativeLocation() + FVector(-5, 0, -15));
 	pointB->SetMobility(EComponentMobility::Movable);
 
@@ -93,6 +93,7 @@ void AHingePair::Tick(float DeltaTime)
 	//return ;
 
 	//DrawDebugLine(GetWorld(), partB->GetComponentLocation(), partB->GetComponentLocation() + (partB->GetUpVector() * 30), FColor::Green, false, -1.0, 0, 2);
+	UKismetSystemLibrary::DrawDebugArrow(GetWorld(), pointB->GetComponentLocation(), pointA->GetComponentLocation(), 2, FLinearColor::Blue, 0, 1);
 
 	//velocity = partB->GetComponentVelocity();
 
@@ -123,8 +124,8 @@ void AHingePair::Tick(float DeltaTime)
 	//if (FMath::RoundToInt(abs(HingeInfo::now_need_angle_turn) / HingeInfo::now_need_angle_turn) != FMath::RoundToInt(abs(HingeInfo::now_need_angle_turn) / HingeInfo::now_need_angle_turn))
 	//	hing.koeff *= -1;
 	
-	if (FMath::IsNearlyEqual(getAngle(), 100, 15))
-		lock = true;
+	//if (FMath::IsNearlyEqual(getAngle(), 100, 15))
+	//	lock = true;
 
 	//if (lock) {
 	//	UE_LOG(LogTemp, Warning, TEXT("%f \t%f \t%f \t%f "), getAngle());
@@ -138,12 +139,14 @@ void AHingePair::Tick(float DeltaTime)
 
 
 	partB->AddForce(hinge.getForce());
+	//if(counter_frames <= 1)
+	//	UE_LOG(LogTemp, Warning, TEXT("%s "), *hinge.getForce().ToString());
 	//if(counter_frames == 0)
 	//	partB->AddForce(getVForceDecrease() * 21000);
 	//UE_LOG(LogTemp, Warning, TEXT("%f \t%f \t%f \t%f "), getAngle());
 
 	counter_frames++;
-	if(counter_frames == 7)
+	if(counter_frames == 15)
 		UKismetSystemLibrary::QuitGame(GetWorld(), controller, EQuitPreference::Quit, true);
 
 	/*
@@ -205,10 +208,10 @@ HingeInfo::HingeInfo()
 		k_shrinks[i] = 1.0f;
 		k_expands[i] = -1.0f;
 		signs_delta_turn[i] = 0;
-		delta_turn_angles[0] = 1;
+		delta_turn_angles[0] = 0.00001;
 	}
 	k_shrink = 1.0;
-	k_expand = 1.0;
+	k_expand = -1.0;
 	force = 1.0;
 	k_force = 1.0;
 }
@@ -229,15 +232,11 @@ inline FString HingeInfo::getType() {
 
 inline void HingeInfo::setTargetAngle(float target) {
 	target_angle = target;
-
-	//angles[0] = parent->getAngle();	
 }
 
 float HingeInfo::getDeltaTurn()
 {
-	//if (etype == SHRINK)
-	//	return angles[0] - angle;
-	float delta = angle - angles[0];
+	float delta = abs(angle - angles[0]);
 	return delta == 0 ? 0.000001 : delta;
 }
 
@@ -253,23 +252,11 @@ void HingeInfo::incKoeff(float arg)
 	}
 }
 
-void HingeInfo::decrKoeff(float arg)
-{
-	//if (etype == SHRINK) {
-	//	k_shrinks[0] / arg;
-	//	k_expands[0] * arg;
-	//}
-	//else {
-	//	k_expands[0] / arg;
-	//	k_shrinks[0] * arg;
-	//}
-}
-
 float HingeInfo::getLeftAngleTurn()
 {
-	if (etype == SHRINK)
-		return angle - target_angle;
-	return target_angle - angle;
+	if (angle == target_angle)
+		return 0.000001;
+	return angle >= target_angle ? angle - target_angle : target_angle - angle;
 }
 
 float HingeInfo::updateKoeffs(float _k)
@@ -289,65 +276,80 @@ float HingeInfo::updateKoeffs(float _k)
 	return _k;
 }
 
+void HingeInfo::updateShrink()
+{
+	k_shrink = (k_mult);
+}
+
+void HingeInfo::updateExpand()
+{
+	k_expand = (k_mult) * -1;
+}
+
 inline void HingeInfo::tick() 
 {
 	begin();
 	//updateKoeffs(getLeftAngleTurn());
 
-	//sign_delta = delta_turn_angle_signfied > delta_turn_angles[0] ? 1 : -1;		// увеличивается скорость?
+	//sign_delta = delta_turn > delta_turn_angles[0] ? 1 : -1;		// увеличивается скорость?
 	//k_mult = 1.0;
 
 	//float k = 1.0;
-	if (count_ticks == 1) {
-		k_shrink *= abs(getLeftAngleTurn()) / abs(delta_turn_angle_signfied);
-		k_expand = 1.0;
-		//k_force = k_mult ;
-		//k_shrink = k_force;
+	//UE_LOG(LogTemp, Warning, TEXT("VELOCITY %s"), *parent->partB->GetComponentVelocity().ToString());
+	if (count_ticks == 0) {
+		mass = parent->partB->GetMass();
+		count_ticks++;
+		return;
 	}
-	else if (count_ticks > 1) {
-		if (etype != last_etype) {
-			if (etype == EXPAND) {
-				float ee = getLeftAngleTurn() / (abs(angles[0]) - angle);	// Колличество которое необходимо было
-				k_shrink *= ee;
-				UE_LOG(LogTemp, Warning, TEXT("eee = %f %f"), ee, k_shrink);
+	//else 
+	//if (count_ticks > 1) {
+	if (angle > angles[0] || angle < angles[0]) {
+		delta_turn = getDeltaTurn();
+		//float P = delta_turn * mass;
+		k_mult = getLeftAngleTurn() / delta_turn * 100.0;
 
+	}
+	else {
+		delta_turn = 1;
+		k_mult = getLeftAngleTurn() / delta_turn * 100.0;
 
-
-				float ee = getLeftAngleTurn() / (abs(angles[0]) - angle);	// Мы сжимали и перескочили 
-				k_shrink *= ee;
-				UE_LOG(LogTemp, Warning, TEXT("rrr = %f"), ee);
-			}
-			else if (etype == SHRINK) {
-				float ee = getLeftAngleTurn() / (angle - abs(angles[0]));	// Мы разжимали и перескочили
-				k_expand *= ee;
-				UE_LOG(LogTemp, Warning, TEXT("rrr2 = %f"), ee);
-			}
-		}
-		else {
+	}
+		//if (etype != last_etype) {
+		//}
+		//else {
 			if (etype == SHRINK) {
-				error = getLeftAngleTurn() / (abs(angles[0]) - target_angle);
-				k_shrink *= error;
-				if(getLeftAngleTurn() < abs(delta_turn_angle_signfied )) {
-					float ee = getLeftAngleTurn() / (abs(angles[0]) - angle);	// Колличество которое необходимо было
-					k_shrink *= ee;
-					UE_LOG(LogTemp, Warning, TEXT("eee = %f %f"), ee, k_shrink);
-				}
+				updateShrink();
+				//error = getLeftAngleTurn() / (abs(angles[0]) - target_angle);
+				//if (getLeftAngleTurn() > delta_turn) {
+				//	updateShrink();
+				//}
+				//else {
+				//	//etype = EXPAND;
+				//	updateExpand();
+				//}
+				//	float ee = getLeftAngleTurn() / (abs(angles[0]) - angle);	// Колличество которое необходимо было
+				//	k_shrink *= ee;
+				//}
 			}
-			else {
-				error = getLeftAngleTurn() / (target_angle - abs(angles[0]));
-				if (getLeftAngleTurn() > abs(delta_turn_angle_signfied))
-					k_expand *= error;
-				else {
-					float ee = getLeftAngleTurn() / (angle - abs(angles[0]));	// Колличество которое необходимо было
-					k_expand *= ee;
-					UE_LOG(LogTemp, Warning, TEXT("eee2 = %f %f"), ee, k_expand);
-				}
+			else if(etype == EXPAND) {
+				updateExpand();
+				//if (getLeftAngleTurn() > delta_turn) {
+				//	updateExpand();
+				//}
+				//else {
+				//	//etype = SHRINK;
+				//	updateShrink();
+				//}
+				//error = getLeftAngleTurn() / (target_angle - abs(angles[0]));
+				//if (getLeftAngleTurn() > abs(delta_turn)) {
+				//	float ee = getLeftAngleTurn() / (angle - abs(angles[0]));	// Колличество которое необходимо было
+				//	k_expand *= ee;
+				//	UE_LOG(LogTemp, Warning, TEXT("eee2 = %f %f"), ee, k_expand);
+				//}
 			}
-
-		}
-	}
-
-	end();
+		//}
+	//}
+	updateMem();
 	count_ticks++;
 }
 
@@ -379,11 +381,12 @@ void HingeInfo::updateMem()
 		delta_turn_angles[i] = delta_turn_angles[i - 1];
 		signs_delta_turn[i] = signs_delta_turn[i - 1];
 	}
-	delta_turn_angles[0] = delta_turn_angle_signfied;
+	delta_turn_angles[0] = delta_turn;
 	angles[0] = angle;
 	signs_delta_turn[0] = sign_delta;
 	k_shrinks[0] = k_shrink;
 	k_expands[0] = k_expand;
+	last_etype = etype;
 }
 
 void HingeInfo::begin()
@@ -393,25 +396,21 @@ void HingeInfo::begin()
 		etype = SHRINK;
 	else
 		etype = EXPAND;
-	delta_turn_angle_signfied = getDeltaTurn();
-}
-
-void HingeInfo::end()
-{
-	updateMem();
+	delta_turn = getDeltaTurn();
+	//UE_LOG(LogTemp, Warning, TEXT("CHECK: %s %f %f %f"), *getType(), angle, delta_turn, target_angle);
 }
 
 void HingeInfo::printMem()
 {
 	FString str; 
 	str.Append(FString::Printf(TEXT("%s:\t"), *getType()));
-	str.Append(FString::Printf(TEXT("%s:\t"), *FString("signs")));
-	for (int i = 0; i < MEM_HINGE_INFO; i++) {
-		str.Append(FString::Printf(TEXT("%d\t"), signs_delta_turn[i]));
-	}
-	UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
-	str.Reset();
-	str.Append(FString::Printf(TEXT("\t\t")));
+	//str.Append(FString::Printf(TEXT("%s:\t"), *FString("signs")));
+	//for (int i = 0; i < MEM_HINGE_INFO; i++) {
+	//	str.Append(FString::Printf(TEXT("%d\t"), signs_delta_turn[i]));
+	//}
+	//UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
+	//str.Reset();
+	//str.Append(FString::Printf(TEXT("")));
 	str.Append(FString::Printf(TEXT("%s:\t"), *FString("delta")));
 	for (int i = 0; i < MEM_HINGE_INFO; i++) {
 		str.Append(FString::Printf(TEXT("%f\t"), delta_turn_angles[i]));
@@ -432,8 +431,8 @@ void HingeInfo::printMem()
 		str.Append(FString::Printf(TEXT("%f\t"), angles[i]));
 	}
 	UE_LOG(LogTemp, Warning, TEXT("%s"), *str);
-	UE_LOG(LogTemp, Warning, TEXT("%f"), k_mult);
-	UE_LOG(LogTemp, Warning, TEXT("%f"), error);
+	UE_LOG(LogTemp, Warning, TEXT("\t\tk_mult:\t%f"), k_mult);
+	//UE_LOG(LogTemp, Warning, TEXT("\t\terro:\t%f"), error);
 }
 
 void AHingePair::getParameters(float& cur_angle, float& need_angle, FVector& _velocity, float &_koef, float &_target_response, FVector &_up_vector)
