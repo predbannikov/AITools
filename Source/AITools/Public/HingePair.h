@@ -25,6 +25,8 @@ struct HingeInfo {
 	HingeInfo();
 	ETYPE etype = SHRINK;
 	ETYPE last_etype = NON;
+	TMap<int16, float> table;
+	void changeWeight(int16 angle, float value);
 	float force = 100.0f;
 	float mass = 1.0f;
 	float target_angle;
@@ -52,7 +54,7 @@ struct HingeInfo {
 	float getDeltaTurn();
 	float getLeftAngleTurn();
 	float updateKoeffs(float _k);
-	void tick();
+	void tick(float DeltaTime);
 	FVector getForce();
 	float getKoeff();
 	void setHingePair(AHingePair* parent);
